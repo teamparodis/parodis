@@ -1,0 +1,9 @@
+*.m~
+
+examples/*/results/
+examples/*/Results/
+results/*
+Results/*
+
+*.asv
+
