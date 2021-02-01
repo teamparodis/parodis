@@ -21,7 +21,7 @@ PARODIS is compatible with any MATLAB Release upwards from R2018a. It further re
 No additional toolboxes are needed, though the MATLAB control toolbox may be recommended, if you need tools for discretizing time-continuous models.
 
 ## Installation
-To install PARODIS, [download](#) the latest release or clone this repository to your desired destination. Then, open MATLAB and run the install script. This script will add the correct directories to your MATLAB path and check if [YALMIP](https://yalmip.github.io/download/) is installed.
+To install PARODIS, [download](https://github.com/teamparodis/parodis/releases/latest) the latest release or clone this repository to your desired destination. Then, open MATLAB and run the install script. This script will add the correct directories to your MATLAB path and check if [YALMIP](https://yalmip.github.io/download/) is installed.
 
 ```matlab
 cd YourPARODISdirectoryGoesHere
