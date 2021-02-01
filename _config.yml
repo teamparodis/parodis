@@ -1,1 +1,4 @@
 theme: jekyll-theme-cayman
+title: PARODIS
+description: A MATLAB framework for Pareto Optimal (scenario-based economic) Model Predictive Control for Distributed Systems
+show_downloads: true
