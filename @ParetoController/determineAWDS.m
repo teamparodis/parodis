@@ -141,7 +141,7 @@ end
 inputs = {u};
 slacks = {sl};
 points = J_opt;
-weights = zeros(1,numel(paretoObj.costFunctions));
+weights = zeros(1,numel(paretoObj.status.conflictingObj));
 weights(paretoObj.status.conflictingObj) = newWeight;
 weights(ParetoController.paretoSetDiff(paretoObj.status.conflictingObj,1:numel(paretoObj.costFunctions)))...
     = NaN;
@@ -227,7 +227,7 @@ r = paretoObj.status.nadir - paretoObj.status.utopia;
 dr = 0;
 
 for p=1:numParents-1
-    dr = dr + norm( (newPoint - previousPoints(p, :))./ r(1,:) );
+    dr = dr + norm( (newPoint - previousPoints(p, :))./ r(p,:) );
 end
 
 dr = dr/(numParents-1);

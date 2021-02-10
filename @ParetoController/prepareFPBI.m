@@ -39,19 +39,21 @@ if isempty(l)
     l = sdpvar(1);
 end
 
+conflictingObj = paretoObj.status.conflictingObj;
+
 % generate normalized cost expressions
-f = ParetoController.ParetoNormalization([costExpressions{:}],paretoObj);
+f = [costExpressions{:}];
+f(conflictingObj) = ParetoController.ParetoNormalization([costExpressions{conflictingObj}],paretoObj);
 
 % starting points as input
 if isempty(vectorStartingPoint)
     vectorStartingPoint = sdpvar(1,numel(paretoObj.costFunctions));
 end
 
-conflictingObj = paretoObj.status.conflictingObj;
 FPBIConstraints = (vectorStartingPoint(conflictingObj) + l*focusVector >= f(conflictingObj)):'FPBI Constraint';
 FPBISymbols = [vectorStartingPoint(conflictingObj)];
 
-if isempty(paretoObj.status.redundantObj) && isempty(paretoObj.status.independantObj)
+if isempty(paretoObj.status.redundantObj) && isempty(paretoObj.status.independantObj) && isempty(paretoObj.config.ignoreInPareto)
     optimizerFPBI = optimizer([optimizeConstraints; FPBIConstraints], -l, yalmipOptions, FPBISymbols, output);
 else
     addedObj = 0;
@@ -62,6 +64,9 @@ else
     if ~isempty(paretoObj.status.redundantObj)
         addedObj = addedObj + paretoObj.config.redundantWeight*...
             f(paretoObj.status.redundantObj)*ones(numel(paretoObj.status.redundantObj),1);
+    end
+    if ~isempty(paretoObj.config.ignoreInPareto)
+       addedObj = addedObj + f(paretoObj.config.ignoreInPareto)*paretoObj.defaultWeights(paretoObj.config.ignoreInPareto)';
     end
     
     optimizerFPBI = optimizer([optimizeConstraints; FPBIConstraints], -l + addedObj, ...
