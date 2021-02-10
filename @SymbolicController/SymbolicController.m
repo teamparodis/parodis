@@ -149,11 +149,11 @@ classdef SymbolicController < Controller
             % If feasibility test is enabled, test before trying to solve
             % actual problem
             if agent.config.testFeasibility
-                obj.testFeasibility(weights, x0, agent, additionalConstraints);
+                obj.testFeasibility(x0, agent, additionalConstraints);
             end
             
             %   collect values to replace symbolic variables
-            [values, valuesVector] = obj.collectValues(weights, x0, agent);
+            [values, valuesVector] = obj.collectValues(x0, agent);
             
             % if temporary constraints shall be set, optimizer cannot be used
             if ( ~isempty(obj.callbackTempConstraints)      ...
@@ -246,7 +246,7 @@ classdef SymbolicController < Controller
             end
         end
         
-        function result = testFeasibility(obj, weights, x0, agent, additionalConstraints)
+        function result = testFeasibility(obj, x0, agent, additionalConstraints)
             % testFeasibility   Performs a feasibility test on the the constraints
             % Solves an optimization problem with empty objective function
             % but all the constraints. If this problem can be solved, it
@@ -256,7 +256,7 @@ classdef SymbolicController < Controller
                 additionalConstraints = [];
             end
             
-            [~, valuesVector] = obj.collectValues(weights, x0, agent);
+            [~, valuesVector] = obj.collectValues(x0, agent);
             symbols = obj.collectSymbols( agent );
             
             

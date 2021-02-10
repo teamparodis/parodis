@@ -105,7 +105,7 @@ classdef ExplicitController < Controller
             % them in (anonymous) functions and adding those via addConstraint
             if ~isempty(obj.constraints)
                 % replace params in all fixed constraints
-                [~, valuesVector] = obj.collectValues(weights, x0, agent);
+                [~, valuesVector] = obj.collectValues(x0, agent);
                 symbols = obj.collectSymbols( agent );
                 
                 constraints = replace(obj.constraints, symbols, valuesVector);

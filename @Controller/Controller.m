@@ -209,10 +209,10 @@ classdef Controller < handle
     end
     
     methods (Access = protected)
-        function [values, valuesVector] = collectValues(obj, weights, x0, agent)
+        function [values, valuesVector] = collectValues(obj, x0, agent)
             if ~isempty(obj.costFunctions)
-                values = {weights, x0};
-                valuesVector = [weights(:); x0(:)];
+                values = {obj.defaultWeights, x0};
+                valuesVector = [obj.defaultWeights(:); x0(:)];
             else
                 values = {x0};
                 valuesVector = [x0(:)];
