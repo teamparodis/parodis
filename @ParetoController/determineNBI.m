@@ -5,7 +5,7 @@ function [inputs, slacks, front, parameters] = determineNBI(paretoObj, agent, op
 
 if nargin == 4 || isempty(preselectedStartingPoint)
     
-dim = numel(paretoObj.costFunctions);
+n = numel(paretoObj.status.conflictingObj);
 numEP = size(extremePoints,1);
 
 front = extremePoints;
@@ -29,10 +29,10 @@ end
 alpha = getAlpha(alpha_kj);
 planePoints = [normedEP(:,paretoObj.status.conflictingObj); alpha*normedEP(:,paretoObj.status.conflictingObj)];
 
-paretoObj.paretoMaxStep = size(planePoints,1)-dim;
+paretoObj.paretoMaxStep = size(planePoints,1)-n;
 
-for i = dim+1:size(planePoints,1)
-    paretoObj.paretoCurrentStep = i-dim;
+for i = n+1:size(planePoints,1)
+    paretoObj.paretoCurrentStep = i-n;
     agent.simulation.updateProgress();
     
     [optOut, feasibilityCode] = optimizer(planePoints(i,:));
@@ -41,16 +41,14 @@ for i = dim+1:size(planePoints,1)
         continue
     end
     
-    pos = i-dim;
+    pos = i-n;
     [front(pos,:), inputs{pos,1}, slacks{pos,1}] = calculateUnnormedObjectiveValues(paretoObj, optOut, agent);
     
     if isequal(front(pos,:),[0 0 0])
         continue
     end
     
-    addedStartingPoints = nan(1,dim);
-    addedStartingPoints(paretoObj.status.conflictingObj) = planePoints(i,:);
-    startingPoints = [startingPoints; addedStartingPoints];
+    startingPoints = [startingPoints; planePoints(i,:)];
 end
 
 paretoObj.status.nadir = max(front);

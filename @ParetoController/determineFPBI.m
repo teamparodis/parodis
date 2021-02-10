@@ -3,7 +3,6 @@ function [inputs, slacks, front, parameters] = determineFPBI(paretoObj, agent, o
 
 if nargin == 4 || isempty(preselectedStartingPoint)
     
-dim = numel(paretoObj.costFunctions);
 numEP = size(extremePoints,1);
 
 inputs = [];
@@ -23,7 +22,6 @@ for i = 2:size(planePoints,1)
     [optOut, feasibilityCode] = optimizer(planePoints(i,:));
     
     if feasibilityCode ~= 0
-        % TODO schreibe NaN an zugehörige Stelle?
         continue
     end
     
@@ -34,9 +32,7 @@ for i = 2:size(planePoints,1)
         continue
     end
     
-    addedStartingPoints = nan(1,dim);
-    addedStartingPoints(paretoObj.status.conflictingObj) = planePoints(i,:);
-    startingPoints = [startingPoints; addedStartingPoints];
+    startingPoints = [startingPoints; planePoints(i,:)];
 end
 
 paretoObj.status.nadir = max(front);

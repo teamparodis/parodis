@@ -1,4 +1,4 @@
-function redundancyCheck(paretoObj, agent)
+function redundancyCheck(paretoObj, agent, optimizeConstraints, costExpressions)
 % Check the cost functions for correlation
 %   Correlation of cost function is checked by calculating representative
 %   solutions with fixed weights. The bravais pearson correlation coefficient is applied.
@@ -12,8 +12,11 @@ independantObj = [];
 pt = [];
 w = [];
 
+paretoObj.status.conflictingObj = ParetoController.paretoSetDiff(paretoObj.config.conflictingObj,...
+    paretoObj.config.ignoreInPareto);
+
 % set weights for optimization
-n = numel(paretoObj.costFunctions);
+n = numel(paretoObj.status.conflictingObj);
 singleWeights = cell(1,n);
 weightSteps = [0.3 1 10 50];
 
@@ -28,12 +31,13 @@ weights = horzcat(weightsCell{:});
 weights(all(weights(:,1) == weights(:,2:end),2),:) = [];
 weights = [weights; weightSteps(1)*ones(1,n)];
 
-optimizerRedundancy = ParetoController.prepareWS(paretoObj, optimizeConstraints, costExpressions, agent);
+optimizerRedundancy = ParetoController.prepareWS(paretoObj, optimizeConstraints, costExpressions, agent,...
+                zeros(1,length(paretoObj.config.conflictingObj)),ones(1,length(paretoObj.config.conflictingObj)));
 
 % solve weighted optimization
 for j = 1:size(weights,1)
     
-    [optOut, feasibilityCode] = optimizerRedundancy(newWeight);
+    [optOut, feasibilityCode] = optimizerRedundancy(weights(j,:));
     
     if feasibilityCode ~= 0
         continue
@@ -65,8 +69,8 @@ end
 
 paretoObj.status.independantObj = independantObj;
 paretoObj.status.redundantObj = redundantObj;
-paretoObj.status.conflictingObj = Pareto.paretoSetDiff(1:n,[paretoObj.status.independantObj, ...
-    paretoObj.status.redundantObj]);
+paretoObj.status.conflictingObj = ParetoController.paretoSetDiff(paretoObj.status.conflictingObj,...
+    [paretoObj.status.independantObj, paretoObj.status.redundantObj]);
 
 end
 

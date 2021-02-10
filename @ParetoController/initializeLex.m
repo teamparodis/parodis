@@ -15,25 +15,28 @@ options = [options, agent.config.solverOptions];
 yalmipOptions = sdpsettings( options{:} );
 
 dim = numel(costExpressions);
-extremePoints = zeros(dim); % array with extreme points
+n = numel(paretoObj.status.conflictingObj);
+extremePoints = zeros(n); % array with extreme points
 
-inputsEP = cell(dim,1);
-slacksEP = cell(dim,1);
-weightsEP = eye(dim); % array with weights as row vector, only weighting one objective
+inputsEP = cell(n,1);
+slacksEP = cell(n,1);
+weightsEP = eye(n); % array with weights as row vector, only weighting one objective
 
-costFcnOrder = zeros(dim); % order in which objective functions are used
+costFcnOrderIdc = zeros(n); % order in which objective functions are used
 
-for i = 0:dim-1
-    costFcnOrder(i+1,:) = (1+i):(dim+i);
+for i = 0:n-1
+    costFcnOrderIdc(i+1,:) = (1+i):(n+i);
 end
-costFcnOrder(costFcnOrder > dim) = costFcnOrder(costFcnOrder > dim) - dim;
+costFcnOrderIdc(costFcnOrderIdc > n) = costFcnOrderIdc(costFcnOrderIdc > n) - n;
 % results in [1 2 3; 2 3 1; 3 1 2]
+
+costFcnOrder = paretoObj.status.conflictingObj(costFcnOrderIdc);
 
 if isempty(sl)
     sl = sdpvar(1,dim);
 end
 
-for objective = 1:dim
+for objective = 1:n
     additionalConstraints = [];
     lastCostFcnValues = [];
     
@@ -46,7 +49,7 @@ for objective = 1:dim
             error("YALMIP error " + diagnostics.problem + " detected: " + yalmiperror(diagnostics.problem));
         end
         
-        costFcnValues = value([costExpressions{:}]);
+        costFcnValues = value([costExpressions{paretoObj.status.conflictingObj}]);
         if isequal(costFcnValues, lastCostFcnValues) % if values stop changing end lexicographic order
             break;
         end

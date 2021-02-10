@@ -19,7 +19,7 @@ else
     options = {'solver', agent.config.solver, 'cachesolvers', 1, 'debug', 0, 'verbose', 0,'convertconvexquad', 1};
 end
 
-doOwnNormalization = false;
+doOwnNormalization = true;
 
 if nargin < 8
     additionalCostExpression = 0;
@@ -27,15 +27,14 @@ end
 
 if nargin < 7
     additionalSymbols = [];
-    doOwnNormalization = true;
 end
-
+ 
 if nargin < 6
     nadir = paretoObj.status.nadir;
 end
 
 if nargin < 5
-    utopia = paretoObj.status.utopia;
+    doOwnNormalization = false;
 end
 
 options = [options, agent.config.solverOptions];
@@ -51,7 +50,9 @@ costExpressionWeights(paretoObj.config.ignoreInPareto) = paretoObj.defaultWeight
 if doOwnNormalization
     WSCostExpression = ([costExpressions{:}]-utopia)./(nadir - utopia)*costExpressionWeights + additionalCostExpression;
 else
-   WSCostExpression = ParetoController.ParetoNormalization([costExpressions{:}],paretoObj)*costExpressionWeights + additionalCostExpression;
+    combinedCostExpressions = [costExpressions{:}];
+    combinedCostExpressions(paretoObj.status.conflictingObj) = ParetoController.ParetoNormalization([costExpressions{paretoObj.status.conflictingObj}],paretoObj);
+    WSCostExpression = combinedCostExpressions*costExpressionWeights + additionalCostExpression;
 end
 
 WSSymbols = [paretoObj.weightSyms(paretoObj.status.conflictingObj), additionalSymbols];
