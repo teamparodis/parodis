@@ -226,7 +226,7 @@ classdef ParetoController < ExplicitController
             agent.status.chosenWeights = paretoParameters(idx,:);
         end
         
-        function [inputs, slacks, front, parametersFDS] = determineFront(this, agent, optimizer, extremePoints,...
+        function [inputs, slacks, front, parameters] = determineFront(this, agent, optimizer, extremePoints,...
                 inputsEP, slacksEP, parametersEP, chosenParameters, determinationScheme)
             % Function that calls the function handle or the function described by the stored string
             % to generate the Pareto front.
