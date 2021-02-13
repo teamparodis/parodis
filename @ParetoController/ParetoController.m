@@ -226,7 +226,7 @@ classdef ParetoController < ExplicitController
             agent.status.chosenWeights = paretoParameters(idx,:);
         end
         
-        function [inputs, slacks, front, parameters] = determineFront(this, agent, optimizer, extremePoints,...
+        function [inputs, slacks, front, parametersFDS] = determineFront(this, agent, optimizer, extremePoints,...
                 inputsEP, slacksEP, parametersEP, chosenParameters, determinationScheme)
             % Function that calls the function handle or the function described by the stored string
             % to generate the Pareto front.
@@ -239,18 +239,20 @@ classdef ParetoController < ExplicitController
             end
             
             if isa(determinationScheme, 'function_handle')
-                [inputs, slacks, front, parameters] = determinationScheme(this, agent, optimizer, extremePoints, chosenParameters);
+                [inputs, slacks, front, parametersFDS] = determinationScheme(this, agent, optimizer, extremePoints, chosenParameters);
             else
                 FDS = "determine"+this.config.frontDeterminationScheme;
                 if ismethod(this, FDS)
-                    [inputs, slacks, front, parameters] = ParetoController.(FDS)(this, agent, optimizer, extremePoints, chosenParameters);
+                    [inputs, slacks, front, parametersFDS] = ParetoController.(FDS)(this, agent, optimizer, extremePoints, chosenParameters);
                 else
                     error("No function handle given for metric function! Try 'AWDS', 'NBI' or 'FPBI'.")
                 end
             end
             inputs = [inputsEP; inputs];
             slacks = [slacksEP; slacks];
-            parameters = [parametersEP; parameters];
+            parameters = nan(size(parametersEP,1)+size(parametersFDS,1), max([size(parametersEP,2),size(parametersFDS,2)]));
+            parameters(1:size(parametersEP,1),1:size(parametersEP,2)) = parametersEP;
+            parameters(size(parametersEP,1)+1:end,1:size(parametersFDS,2)) = parametersFDS;
             this.status.front = front;
         end
         

@@ -141,10 +141,7 @@ end
 inputs = {u};
 slacks = {sl};
 points = J_opt;
-weights = zeros(1,numel(paretoObj.status.conflictingObj));
-weights(paretoObj.status.conflictingObj) = newWeight;
-weights(ParetoController.paretoSetDiff(paretoObj.status.conflictingObj,1:numel(paretoObj.costFunctions)))...
-    = NaN;
+weights = newWeight;
 
 % get the candidates for new parents
 candidates = unique(parents,'rows','stable');
@@ -189,7 +186,7 @@ function [planeParameters] = hyperplane(hyperpoints, paretoObj)
 % calculates hyperplane parameters a1,a2,a3...  for hyperplane a1*f1+a2*f2+a3*f3+...=1
 
 normedHyperpoints = ParetoController.ParetoNormalization(hyperpoints, paretoObj);
-planeParameters = (normedHyperpoints(:,paretoObj.status.conflictingObj)\ones(size(normedHyperpoints, 1), 1))';
+planeParameters = (normedHyperpoints\ones(size(normedHyperpoints, 1), 1))';
 
 % plane parameters should always all be positive, all negative case
 % changes only offset on y-axis, and since this is not needed, we turn
@@ -227,7 +224,7 @@ r = paretoObj.status.nadir - paretoObj.status.utopia;
 dr = 0;
 
 for p=1:numParents-1
-    dr = dr + norm( (newPoint - previousPoints(p, :))./ r(p,:) );
+    dr = dr + norm( (newPoint - previousPoints(p, :))./ r );
 end
 
 dr = dr/(numParents-1);

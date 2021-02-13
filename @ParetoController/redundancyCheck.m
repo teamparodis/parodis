@@ -60,7 +60,7 @@ equalPairs = unique(sort([equalRow,equalCol],2),'rows');
 
 for numTuples = 1:length(equalTuples)
     [~,keepIdx] = min(sum(PCorrelating(equalTuples{numTuples},:),2));
-    redundantObj = [redundantObj, Pareto.paretoSetDiff(equalTuples{numTuples},equalTuples{numTuples}(keepIdx))];
+    redundantObj = [redundantObj, ParetoController.paretoSetDiff(equalTuples{numTuples},equalTuples{numTuples}(keepIdx))];
 end
 
 if n - numel(redundantObj) > 2

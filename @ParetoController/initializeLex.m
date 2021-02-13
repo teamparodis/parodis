@@ -55,7 +55,8 @@ for objective = 1:n
         end
         
         lastCostFcnValues = costFcnValues;
-        additionalConstraints = [additionalConstraints; costExpressions{order}/costFcnValues(order) <= 1 + sl(order)];
+        additionalConstraints = [additionalConstraints; costExpressions{order}/...
+            costFcnValues(costFcnOrder(objective,:) == order) <= 1 + sl(order)];
     end
     
     extremePoints(objective,:) = costFcnValues;
