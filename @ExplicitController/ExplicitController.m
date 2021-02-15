@@ -134,7 +134,7 @@ classdef ExplicitController < Controller
             % if model has implicit predictions, state trajectory remains symbolic
             % and bound by equality constraints
             if agent.model.implicitPrediction
-                predictionConstraints = obj.buildPredictionConstraints(model, agent.status.dPred, agent.config.T_s);
+                predictionConstraints = obj.buildPredictionConstraints(model, agent.status.dPred, agent.status.paramValues, agent.config.T_s);
                 constraints = [constraints; predictionConstraints];
             end
             
@@ -223,30 +223,6 @@ classdef ExplicitController < Controller
     end
     
     methods (Access = protected)
-        function constraints = buildPredictionConstraints(obj, model, dPred, T_s)
-            % buildPredictionConstraints    Adds implicit prediction
-            %   constraints during compile, i.e. equality constraints
-            %   x(n+1|k) == f_n(x(n|k), u(n|k), d(n|k))
-            
-            N_pred = length(T_s);
-            odes = model.odes;
-            constraints = [];
-
-            for s=1:obj.numScenarios
-                params = extractScenario(obj.paramSyms, s);
-                
-                for k=1:N_pred
-                    tag = char( sprintf("x(%i) = f_%i(x(%i), u(%i), d(%i))", k, s, k-1, k-1, k-1) );
-                    if model.parameterVariant
-                        dynConstraint = (model.x{s}(:, k+1) == odes{k}(model.x{s}(:, k), model.u(:, k), dPred{s}(:, k), k, params)):tag;
-                    else
-                        dynConstraint = (model.x{s}(:, k+1) == odes{k}(model.x{s}(:, k), model.u(:, k), dPred{s}(:, k))):tag;
-                    end
-                    
-                    constraints = [constraints; dynConstraint];
-                end
-            end
-        end
         
         function constraints = buildBoxConstraints(obj, paramValues, model)
             % buildBoxConstraints  Adds box constraints using addConstraint

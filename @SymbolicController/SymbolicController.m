@@ -31,7 +31,8 @@ classdef SymbolicController < Controller
             
             % if model has implicit predictions, add dynamic constraints
             if model.implicitPrediction
-                obj.buildPredictionConstraints(model, agent.config.T_s);
+                predConstraints = obj.buildPredictionConstraints(model, model.d, obj.paramSyms, agent.config.T_s);
+                obj.constraints = [obj.constraints; predConstraints];
             end
             
             % build box and delta constraints from list
@@ -283,31 +284,6 @@ classdef SymbolicController < Controller
     end
     
     methods (Access = protected)
-
-        
-        function buildPredictionConstraints(obj, model, T_s)
-            % buildPredictionConstraints    Adds implicit prediction
-            %   constraints during compile, i.e. equality constraints
-            %   x(n+1|k) == f_n(x(n|k), u(n|k), d(n|k))
-            
-            N_pred = length(T_s);
-            odes = model.odes;
-            
-
-            for s=1:obj.numScenarios
-                params = extractScenario(obj.paramSyms, s);
-                
-                for k=1:N_pred
-                    tag = char( sprintf("x(%i) = f_%i(x(%i), u(%i), d(%i))", k, s, k-1, k-1, k-1) );
-                    if model.parameterVariant
-                        dynConstraint = (model.x{s}(:, k+1) == odes{k}(model.x{s}(:, k), model.u(:, k), model.d{s}(:, k), k, params)):tag;
-                    else
-                        dynConstraint = (model.x{s}(:, k+1) == odes{k}(model.x{s}(:, k), model.u(:, k), model.d{s}(:, k))):tag;
-                    end
-                    obj.constraints = [obj.constraints; dynConstraint];
-                end
-            end
-        end
         
         function buildBoxConstraints(obj, model)
             % buildBoxConstraints  Adds box constraints using addConstraint
