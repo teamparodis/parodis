@@ -454,9 +454,10 @@ classdef Agent < handle
             end
             
             numScenarios = length(this.model.x);
+            N_pred = length(this.status.horizonTime);
             
             if this.model.n_d == 0
-                N_pred = length(this.status.horizonTime);
+                
                 dPred = repmat( {zeros(0, N_pred)}, numScenarios, 1);
                 
                 return;
@@ -476,16 +477,16 @@ classdef Agent < handle
                 % replace only those disturbance predictions that are actually provided externally
                 % those that shall not be replaced/are not provided are marked with NaN in externalData.disturbances{s}
                 
-                for s=1:numScenarios
-                    idx = ~isnan( externalData.disturbances{s}(:, 1) );
-                    dPred{s}(idx, 1) = externalData.disturbances{s}(idx, 1);
-                end
+                dim = size( externalData.disturbances{1} );
                 
-                if length(this.status.horizonTime) > 1
-                    for s=1:numScenarios
-                        idx = ~isnan( externalData.disturbances{s}(:, 2) );
-                        dPred{s}(idx, 2:end) = externalData.disturbances{s}(idx, 2:end);
-                    end
+                % there must be n_d rows and either 1 or N_pred columns
+                if dim(1) ~= this.model.n_d || ( dim(2) ~= 1 && dim(2) ~= N_pred )
+                    warning( "PARODIS Agent:getDisturbance (%s) external disturbance data appears to be malformed, must be n_d x 1 or n_d x N_pred", this.name );
+                end
+                    
+                for s=1:numScenarios
+                    idx = ~isnan( externalData.disturbances{s} );
+                    dPred{s}( idx ) = externalData.disturbances{s}( idx );
                 end
                 
             end
@@ -504,7 +505,7 @@ classdef Agent < handle
                 );
                 
                 if( ~isequal(dimensions, size( paramValues.(paramName){1} )))
-                    warning("PARODIS Agent:setParamValues dimensions of parameter source for " + paramName + " do not agree");
+                    warning("PARODIS Agent:setParamValues (%s) dimensions of parameter source for " + paramName + " do not agree", this.name);
                 end
             end
             
