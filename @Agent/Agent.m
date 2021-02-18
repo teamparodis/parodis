@@ -98,6 +98,9 @@ classdef Agent < handle
             % initially, previous state should conform to isempty
             obj.previousStatus = [];
             
+            if length(x0) ~= model.n_x
+                warning("PARODIS Agent:constructor The provided value for x0 is malformed (%s)", name);
+            end
         end
         
         function initialise(this)
@@ -481,7 +484,7 @@ classdef Agent < handle
                 
                 % there must be n_d rows and either 1 or N_pred columns
                 if dim(1) ~= this.model.n_d || ( dim(2) ~= 1 && dim(2) ~= N_pred )
-                    warning( "PARODIS Agent:getDisturbance (%s) external disturbance data appears to be malformed, must be n_d x 1 or n_d x N_pred", this.name );
+                    warning( "PARODIS Agent:getDisturbance external disturbance data appears to be malformed, must be n_d x 1 or n_d x N_pred (%s)", this.name );
                 end
                     
                 for s=1:numScenarios
@@ -505,7 +508,7 @@ classdef Agent < handle
                 );
                 
                 if( ~isequal(dimensions, size( paramValues.(paramName){1} )))
-                    warning("PARODIS Agent:setParamValues (%s) dimensions of parameter source for " + paramName + " do not agree", this.name);
+                    warning("PARODIS Agent:setParamValues dimensions of parameter source for " + paramName + " do not agree (%s)", this.name);
                 end
             end
             
