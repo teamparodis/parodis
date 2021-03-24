@@ -260,7 +260,7 @@ classdef Agent < handle
                 costFunction = this.controller.costFunctions{costIdx};
                 
                 data = costFunction.evaluateHorizon( this.status.xPred, this.status.uPred, this.status.dPred, ... 
-                                                     this.status.paramValues, this.controller.slackVariables, this.config.T_s );
+                                                     this.status.paramValues, this.status.slackVariables, this.config.T_s );
                 this.status.costsPred.(costName) = data;
             end
         end
@@ -335,7 +335,7 @@ classdef Agent < handle
 	                costFunction = this.controller.costFunctions{costIdx};
 	                
 	                data = costFunction.evaluateHorizon( xPred, this.status.uPred, d, ... 
-	                                                     this.status.paramValues, this.controller.slackVariables, this.config.T_s );
+	                                                     this.status.paramValues, this.status.slackVariables, this.config.T_s );
 	                this.history.costs.(costName)(:, end+1) = data(1);
 	            end
         	end
