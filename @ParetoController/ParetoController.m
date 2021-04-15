@@ -185,10 +185,10 @@ classdef ParetoController < ExplicitController
             % string is 'auto' the optimizer corresponding to the front determination scheme is
             % called.
             
-            if nargin == 5 && isequal(this.config.preperationMethod,'auto')
+            if nargin == 5 && isequal(this.config.preparationMethod,'auto')
                 method = this.config.frontDeterminationScheme;
             elseif nargin == 5
-                method = this.config.preperationMethod;
+                method = this.config.preparationMethod;
             end
             
             if isa(method, 'function_handle')
@@ -198,7 +198,7 @@ classdef ParetoController < ExplicitController
                 if ismethod(this, optimizerMethod)
                     optimizer = ParetoController.(optimizerMethod)(this, optimizeConstraints, costExpressions, agent, extremePoints);
                 else
-                    error("No function handle given for front determination scheme! Try 'AWDS', 'NBI', 'FPBI'!")
+                    error("No function handle given for front determination scheme! Try 'AWDS', 'NBI', 'FPBI', 'ASBI'!")
                 end
             end
         end
@@ -245,7 +245,7 @@ classdef ParetoController < ExplicitController
                 if ismethod(this, FDS)
                     [inputs, slacks, front, parametersFDS] = ParetoController.(FDS)(this, agent, optimizer, extremePoints, chosenParameters);
                 else
-                    error("No function handle given for metric function! Try 'AWDS', 'NBI' or 'FPBI'.")
+                    error("No function handle given for metric function! Try 'AWDS', 'NBI', 'FPBI' or 'ASBI'.")
                 end
             end
             inputs = [inputsEP; inputs];
@@ -287,6 +287,7 @@ classdef ParetoController < ExplicitController
         optimizer = prepareNBI(paretoObj, optimizeConstraints, costExpressions, agent, extremePoints)
         optimizer = prepareFPBI(paretoObj, optimizeConstraints, costExpressions, agent, extremePoints)
         optimizer = prepareWS(paretoObj, optimizeConstraints, costExpressions, agent, utopia, nadir, additionalSymbols, additionalCostExpression)
+        optimizer = prepareASBI(paretoObj, optimizeConstraints, costExpressions, agent, ~)
         
         % extreme point functions
         [extremePoints, inputsEP, slacksEP, parametersEP] = initializeMWA(paretoObj, optimizeConstraints, costExpressions, agent);
@@ -297,6 +298,7 @@ classdef ParetoController < ExplicitController
         [inputs, slacks, front, parameters] = determineAWDS(this, agent, optimizer, extremePoints, chosenParameters);
         [inputs, slacks, front, parameters] = determineNBI(this, agent, optimizer, extremePoints, chosenParameters);
         [inputs, slacks, front, parameters] = determineFPBI(this, agent, optimizer, extremePoints, chosenParameters);
+        [inputs, slacks, front, parameters] = determineASBI(this, agent, optimizer, extremePoints, chosenParameters);
         
         % metric functions
         [idx,utility] = selectCUP(varargin);
@@ -311,7 +313,7 @@ classdef ParetoController < ExplicitController
             config.distance2AllMin = [];
             config.interactivity = false;
             config.plotLabels = {};
-            config.preperationMethod = 'auto';
+            config.preparationMethod = 'auto';
             config.extremePointFunction = 'MWAN';
             config.metricFunction = 'CUP';
             config.frontDeterminationScheme = 'FPBI';
