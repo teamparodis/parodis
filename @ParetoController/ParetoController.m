@@ -32,6 +32,9 @@ classdef ParetoController < ExplicitController
             obj.status.front = [];
         end
         
+        % function for checking cost functions for redundancy
+        redundancyCheck(paretoObj, agent, optimizeConstraints, costExpressions);
+        
         function addCostFunction(obj, name, costFunctionInstance, defaultWeight )
             if nargin < 4
                 defaultWeight = 1;
@@ -58,7 +61,7 @@ classdef ParetoController < ExplicitController
             % Calculates the unnormed objective values from the output of an optimizer object. This
             % output constists of the input u und the slack variables.
             
-            n = numel(paretoObj.costFunctions)-numel(paretoObj.config.ignoreInPareto);
+            n = numel(paretoObj.status.conflictingObj);
             
             u = optimizerOutput{1};
             
@@ -79,11 +82,11 @@ classdef ParetoController < ExplicitController
             Ns = agent.controller.numScenarios;
             objectiveValues = zeros(1,n);
             
-            for objInEP = 1:n
-                objectiveValues(1,objInEP) = paretoObj.costFunctions{objInEP}.buildExpression(x,u,d,params,Ns,slackValues,agent.config.T_s);
+            for obj = 1:n
+                objectiveValues(1,obj) = paretoObj.costFunctions{paretoObj.status.conflictingObj(obj)}.buildExpression(x,u,d,params,Ns,slackValues,agent.config.T_s);
             end
         end
-               
+        
         function [uPred, slackValues, code, paretoStatus] = getInput(this, x0, agent, predefinedParetoParameters, additionalConstraints, additionalExpression)
             % [uPred, slackValues, code, parameters] = getInput Retrieves an input trajectory and the realised values of the slack variables
             %                               as well as the yalmip problem code
@@ -110,11 +113,17 @@ classdef ParetoController < ExplicitController
                 additionalExpression = [];
             end
             
-            this.status.conflictingObj = this.config.conflictingObj;
-            
             [optimizeConstraints, costExpressions] = this.prepareProblem(x0, agent, additionalConstraints);
             
+            if this.config.checkRedundancy
+                this.redundancyCheck(agent, optimizeConstraints, costExpressions);
+            else
+                this.status.conflictingObj = ParetoController.paretoSetDiff(this.config.conflictingObj,...
+                    this.config.ignoreInPareto);
+            end
+            
             [extremePoints, inputsEP, slacksEP, parametersEP] = this.determineExtremePoints(optimizeConstraints, costExpressions, agent);
+            
             optimizer = this.prepareOptimizer( optimizeConstraints, costExpressions, agent, extremePoints );
             
             % if pareto evaluation shall be done only once per time step (i.e. negotiation)
@@ -135,9 +144,9 @@ classdef ParetoController < ExplicitController
                 this.clear();
                 
                 [inputs, slacks, front, paretoParameters] = this.determineFront(                    ...
-                    agent, optimizer, extremePoints, inputsEP, slacksEP, parametersEP,              ...                
+                    agent, optimizer, extremePoints, inputsEP, slacksEP, parametersEP,              ...
                     predefinedParetoParameters                                                      ...
-                );
+                    );
                 
                 if isempty(predefinedParetoParameters)
                     if this.config.interactivity % call the interactivity tool and wait for selection
@@ -173,8 +182,8 @@ classdef ParetoController < ExplicitController
         
         function optimizer = prepareOptimizer(this, optimizeConstraints, costExpressions, agent, extremePoints, method)
             % Select the optimizer function to based on the ParetoController config. If the stored
-            % string is 'auto' the optimizer corresponding to the front determination scheme is 
-            % called. 
+            % string is 'auto' the optimizer corresponding to the front determination scheme is
+            % called.
             
             if nargin == 5 && isequal(this.config.preperationMethod,'auto')
                 method = this.config.frontDeterminationScheme;
@@ -195,7 +204,7 @@ classdef ParetoController < ExplicitController
         end
         
         function [chosenInput, chosenSlacks, chosenParameters, chosenSolution] = chooseSolution(this, agent, inputs, slacks, front, paretoParameters)
-            % Function to select a Pareto-optimal point on the Pareto front. The function stored in 
+            % Function to select a Pareto-optimal point on the Pareto front. The function stored in
             % the ParetoController config or the function corresponding to a stored string is
             % called.
             
@@ -230,18 +239,20 @@ classdef ParetoController < ExplicitController
             end
             
             if isa(determinationScheme, 'function_handle')
-                [inputs, slacks, front, parameters] = determinationScheme(this, agent, optimizer, extremePoints, chosenParameters);
+                [inputs, slacks, front, parametersFDS] = determinationScheme(this, agent, optimizer, extremePoints, chosenParameters);
             else
                 FDS = "determine"+this.config.frontDeterminationScheme;
                 if ismethod(this, FDS)
-                    [inputs, slacks, front, parameters] = ParetoController.(FDS)(this, agent, optimizer, extremePoints, chosenParameters);
+                    [inputs, slacks, front, parametersFDS] = ParetoController.(FDS)(this, agent, optimizer, extremePoints, chosenParameters);
                 else
                     error("No function handle given for metric function! Try 'AWDS', 'NBI' or 'FPBI'.")
                 end
             end
             inputs = [inputsEP; inputs];
             slacks = [slacksEP; slacks];
-            parameters = [parametersEP; parameters];
+            parameters = nan(size(parametersEP,1)+size(parametersFDS,1), max([size(parametersEP,2),size(parametersFDS,2)]));
+            parameters(1:size(parametersEP,1),1:size(parametersEP,2)) = parametersEP;
+            parameters(size(parametersEP,1)+1:end,1:size(parametersFDS,2)) = parametersFDS;
             this.status.front = front;
         end
         
@@ -334,9 +345,6 @@ classdef ParetoController < ExplicitController
         % filter to check for weakly Pareto-optimal points
         idc = paretoFilter(paretoObj, potentialPts, fixedPointIdc);
         
-        % function for checking cost functions for redundancy
-        redundancyCheck(paretoObj);
-        
         % find the outer points of the Pareto front
         borderPoints = getBorderPoints(pf);
         
@@ -346,7 +354,7 @@ classdef ParetoController < ExplicitController
         % normalization using the utopia and nadir point
         normalizedPoints = ParetoNormalization(points, paretoObj);
         
-        % find the adjacent points to the examined point 
+        % find the adjacent points to the examined point
         adjacentPts = getAdjacentPoints(pf, examinedPoint, ignorePoints);
     end
 end

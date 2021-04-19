@@ -368,7 +368,13 @@ classdef Simulation < handle
                         name{1}, this.progress.negotiationStep, length(this.negotiationOrder) ) ...
                         );
                     
-                    this.agents.(name{1}).doNegotiation( externalData );
+                    if isfield(externalData, name)
+                        externalAgentData = externalData.(name);
+                    else
+                        externalAgentData = [];
+                    end
+                    
+                    this.agents.(name{1}).doNegotiation( externalAgentData );
                 end
                 % otherwise, if a callback is set, call that
             elseif ~isempty(this.negotiationHandle)
@@ -390,7 +396,15 @@ classdef Simulation < handle
                     agentNames{idx}, this.progress.loopAgentStep(idx), this.progress.loopAgentStepMax(idx) ) ...
                     );
                 
-                this.agents.(agentNames{idx}).doStep( externalData );
+                agentName = agentNames{idx};
+                
+                if isfield(externalData, agentName)
+                    externalAgentData = externalData.(agentName);
+                else
+                    externalAgentData = [];
+                end
+                
+                this.agents.(agentName).doStep( externalAgentData );
                 
             end
             
