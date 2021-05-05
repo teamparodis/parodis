@@ -15,6 +15,10 @@ normedEP = ParetoController.ParetoNormalization(extremePoints, paretoObj);
 
 paretoObj.paretoMaxStep = size(planePoints,1)-1;
 
+front = [];
+inputs = {};
+slacks = {};
+
 for i = 2:size(planePoints,1)
     paretoObj.paretoCurrentStep = i-1;
     agent.simulation.updateProgress();
@@ -24,11 +28,10 @@ for i = 2:size(planePoints,1)
     if feasibilityCode ~= 0
         continue
     end
+
+    [front(end+1,:), inputs{end+1,1}, slacks{end+1,1}] = calculateUnnormedObjectiveValues(paretoObj, optOut, agent);
     
-    pos = i-1;
-    [front(pos,:), inputs{pos,1}, slacks{pos,1}] = calculateUnnormedObjectiveValues(paretoObj, optOut, agent);
-    
-    if isequal(front(pos,:),[0 0 0])
+    if isequal(front(end,:),[0 0 0])
         continue
     end
     
