@@ -35,16 +35,16 @@ end
 
 % normal vector = search direction
 if isempty(normalVector)
-    normalVector = sdpvar(1,nCostFunction);
+    normalVector = sdpvar(1, nCostFunction);
 end
 
 % search vector is parallel to the normal vector
 if isempty(searchVector)
-    searchVector = sdpvar(1,nCostFunction);
+    searchVector = sdpvar(1, nCostFunction);
 end
 
-ASBIConstraints = [(vectorStartingPoint(conflictingObj) + searchVector >= f(conflictingObj)):'ASBI Constraint', ...
-                    (searchVector == l * normalVector):'search vector parallel to normal vector'];
+ASBIConstraints = [(vectorStartingPoint(conflictingObj) + searchVector(conflictingObj) >= f(conflictingObj)):'ASBI Constraint', ...
+                    (searchVector(conflictingObj) == l * normalVector(conflictingObj)):'search vector parallel to normal vector'];
 ASBISymbols = [vectorStartingPoint(conflictingObj) normalVector(conflictingObj)];
 
 noRedundancy = isempty(paretoObj.status.redundantObj) && isempty(paretoObj.status.independantObj);
