@@ -50,7 +50,7 @@ ASBISymbols = [vectorStartingPoint(conflictingObj) normalVector(conflictingObj)]
 noRedundancy = isempty(paretoObj.status.redundantObj) && isempty(paretoObj.status.independantObj);
 
 if noRedundancy && isempty(paretoObj.config.ignoreInPareto)  
-    optimizerASBI = optimizer([optimizeConstraints; ASBIConstraints], searchVector*...
+    optimizerASBI = optimizer([optimizeConstraints; ASBIConstraints], searchVector *...
         ones(nCostFunction,1), yalmipOptions, ASBISymbols, output);
     
 else
@@ -67,8 +67,8 @@ else
         addedObj = addedObj + f(paretoObj.config.ignoreInPareto)*paretoObj.defaultWeights(paretoObj.config.ignoreInPareto)';
     end
     
-    optimizerASBI = optimizer([optimizeConstraints; ASBIConstraints], sum(searchVector) + addedObj, ...
-        yalmipOptions, ASBISymbols, output);
+    optimizerASBI = optimizer([optimizeConstraints; ASBIConstraints], searchVector*...
+        ones(nCostFunction,1) + addedObj, yalmipOptions, ASBISymbols, output);
 end
 
 end
