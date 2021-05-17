@@ -165,6 +165,9 @@ classdef Controller < handle
                 costFunction = costFunctionCell{1};
                 
                 slacks = costFunction.getSlacks(model, agent, obj.paramSyms);
+                if isa(slacks, 'double') && isempty(slacks)
+                    slacks = struct;
+                end
                 obj.slackVariables = mergeStructs(obj.slackVariables, slacks);
             end
             

@@ -25,7 +25,7 @@ dim = size(normedFront,2);
 radius = [];
 BP = ParetoController.getBorderPoints(normedFront);
 radius = NaN(size(normedFront,1),1);
-center = [];
+center = NaN(size(normedFront,1),2);
 
 for iPoints = ParetoController.paretoSetDiff(1:length(normedFront),[EP_pos,BP])
     AP = ParetoController.getAdjacentPoints(normedFront, normedFront(iPoints,:), BP);
