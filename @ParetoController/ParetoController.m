@@ -159,7 +159,6 @@ classdef ParetoController < ExplicitController
                         slackValues = slacks(idx,:);
                         chosenParameters = paretoParameters(idx,:);
                         chosenSolution = front(idx,:);
-                        agent.status.chosenWeights = paretoParameters(idx,:);
                     else
                         [uPred, slackValues, chosenParameters, chosenSolution] = this.chooseSolution( agent, inputs, slacks, front, paretoParameters );
                     end
