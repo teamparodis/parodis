@@ -2,15 +2,21 @@ classdef CostFunction < handle
     % Abstract super class for implementation of cost functions
     
     methods (Abstract,Static)
-        % Function for introducing custom slacks and corresponding constraints
-        [slacks] = getSlacks(model, agent, params)
-        [constraints] = getConstraints(model, agent, slacks, params)
         
         % Function returning an expression for the cost function
         [expr] = buildExpression(x, u, d, params, Ns, slacks, T_s)
     end
     
     methods (Static)
+        % Function for introducing custom slacks and corresponding constraints
+        function [slacks] = getSlacks(model, agent, params)
+            slacks = struct;
+        end
+        
+        function [constraints] = getConstraints(model, agent, slacks, params)
+            constraints = [];
+        end
+        
         % Optional function for expression for a single scenario
         function [exprSingle] = buildExpressionSingleScen(x, u, d, params, slacks, T_s)
             exprSingle = [];
