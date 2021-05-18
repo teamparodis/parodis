@@ -165,6 +165,10 @@ classdef Controller < handle
                 costFunction = costFunctionCell{1};
                 
                 slacks = costFunction.getSlacks(model, agent, obj.paramSyms);
+                if ~isa(slacks, 'struct')
+                    warning("PARODIS Controller:compile cost function getSlacks must return struct");
+                    continue;
+                end
                 obj.slackVariables = mergeStructs(obj.slackVariables, slacks);
             end
             

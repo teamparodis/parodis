@@ -440,7 +440,7 @@ classdef SymbolicController < Controller
                 end
                 
                 % vector for scaling dx to appropriate time steps
-                scale = T_s/T_s_ref;
+                scale = T_s(1:N_horz-1)/T_s_ref; % dx/du consider N_horz-1 many steps, and N_horz is shorter for du
                 
                 if iscell( model.(variable) )
                     N_S = length( model.(variable) );
@@ -466,13 +466,13 @@ classdef SymbolicController < Controller
                     if size(lb_, 2) == 1
                         lb_ = repmat(lb_, 1, N_horz - 1);
                     end
-                    lb_ = lb_ .* scale;
+                    lb_ = lb_ .* scale(1:length(lb_));
                     
                     % roll out UB and scale according to T_s and T_s_ref
                     if size(ub_, 2) == 1
                         ub_ = repmat(ub_, 1, N_horz - 1);
                     end
-                    ub_ = ub_ .* scale;
+                    ub_ = ub_ .* scale(1:length(lb_));
                     
                     if iscell( model.(variable) )
                         variableSym = model.(variable){s};

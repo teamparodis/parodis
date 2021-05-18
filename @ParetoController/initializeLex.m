@@ -19,7 +19,6 @@ n = numel(paretoObj.status.conflictingObj);
 extremePoints = zeros(n); % array with extreme points
 
 inputsEP = cell(n,1);
-slacksEP = cell(n,1);
 weightsEP = eye(n); % array with weights as row vector, only weighting one objective
 
 costFcnOrderIdc = zeros(n); % order in which objective functions are used
@@ -36,13 +35,15 @@ if isempty(sl)
     sl = sdpvar(1,dim);
 end
 
+% call all objectives
 for objective = 1:n
-    additionalConstraints = [];
+    additionalConstraints = [sl >= 0];
     lastCostFcnValues = [];
     
+    % call all other objectives in lexicographic order
     for order = costFcnOrder(objective,:)
         
-        fullCostExpression = costExpressions{order} + sl*sl'*1e5;
+        fullCostExpression = costExpressions{order} + sl * ones(dim, 1) * 1e5;
         diagnostics = optimize([optimizeConstraints; additionalConstraints], fullCostExpression, yalmipOptions);
         
         if diagnostics.problem ~= 0
@@ -55,8 +56,9 @@ for objective = 1:n
         end
         
         lastCostFcnValues = costFcnValues;
+        % additional constraints on calculated objectives
         additionalConstraints = [additionalConstraints; costExpressions{order}/...
-            costFcnValues(costFcnOrder(objective,:) == order) <= 1 + sl(order)];
+            costFcnValues(order) <= 1 + sl(order)];
     end
     
     extremePoints(objective,:) = costFcnValues;
@@ -68,7 +70,7 @@ for objective = 1:n
         fillSlacks.(slackVariableNames{idx}) = value(agent.controller.slackVariables.(slackVariableNames{idx}));
     end
     
-    slacksEP{objective,1} = fillSlacks;
+    slacksEP(objective,1) = fillSlacks;
 end
 
 paretoObj.status.utopia = min(extremePoints);

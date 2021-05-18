@@ -25,24 +25,26 @@ dim = size(normedFront,2);
 radius = [];
 BP = ParetoController.getBorderPoints(normedFront);
 radius = NaN(size(normedFront,1),1);
+center = NaN(size(normedFront,1),2);
 
-for i = ParetoController.paretoSetDiff(1:length(normedFront),[EP_pos,BP])
-    AP = ParetoController.getAdjacentPoints(normedFront, normedFront(i,:), BP);
+for iPoints = ParetoController.paretoSetDiff(1:length(normedFront),[EP_pos,BP])
+    AP = ParetoController.getAdjacentPoints(normedFront, normedFront(iPoints,:), BP);
     
     if length(AP) == dim
-        center = (2*(normedFront(AP,:)-normedFront(i,:))\((vecnorm(normedFront(AP,:),2,2).^2-vecnorm(normedFront(i,:),2,2)^2)))';
+        center(iPoints,:) = (2*(normedFront(AP,:)-normedFront(iPoints,:))\((vecnorm(normedFront(AP,:),2,2).^2-vecnorm(normedFront(iPoints,:),2,2)^2)))';
     elseif length(AP) > dim
-        M = 2*(normedFront(AP,:)-normedFront(i,:));
-        M_weight = M'*diag(1./vecnorm((normedFront(AP,:)-normedFront(i,:)),Inf,2));
-        center = ((M_weight*M)\(M_weight)*((vecnorm(normedFront(AP,:),2,2).^2-vecnorm(normedFront(i,:),2,2)^2)))';
+        M = 2*(normedFront(AP,:)-normedFront(iPoints,:));
+        M_weight = M'*diag(1./vecnorm((normedFront(AP,:)-normedFront(iPoints,:)),Inf,2));
+        center(iPoints,:) = ((M_weight*M)\(M_weight)*((vecnorm(normedFront(AP,:),2,2).^2-vecnorm(normedFront(iPoints,:),2,2)^2)))';
     else
         continue;
     end
     
-    radius(i,:) = norm(normedFront(i,:)-center);
+    radius(iPoints,:) = norm(normedFront(iPoints,:)-center(iPoints,:));
 end
 
-% direction(EP_pos,:) = 0;
+concave = all(center <= normedFront, 2);
+radius(concave) = NaN;
 
 [~,idx] = min(radius);
 utility = radius;
