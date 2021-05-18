@@ -17,25 +17,25 @@ paretoObj.paretoMaxStep = size(planePoints,1)-1;
 
 front = [];
 inputs = {};
-slacks = {};
 
-for i = 2:size(planePoints,1)
-    paretoObj.paretoCurrentStep = i-1;
+for iParetoStep = 2:size(planePoints,1)
+    paretoObj.paretoCurrentStep = iParetoStep - 1;
     agent.simulation.updateProgress();
     
-    [optOut, feasibilityCode] = optimizer(planePoints(i,:));
+    [optOut, feasibilityCode] = optimizer(planePoints(iParetoStep,:));
     
     if feasibilityCode ~= 0
         continue
     end
-
-    [front(end+1,:), inputs{end+1,1}, slacks{end+1,1}] = calculateUnnormedObjectiveValues(paretoObj, optOut, agent);
+    
+    [front(iParetoStep,:), inputs{iParetoStep,1}, slacks(iParetoStep,1)] = calculateUnnormedObjectiveValues(...
+        paretoObj, optOut, agent);
     
     if isequal(front(end,:),[0 0 0])
         continue
     end
     
-    startingPoints = [startingPoints; planePoints(i,:)];
+    startingPoints = [startingPoints; planePoints(iParetoStep,:)];
 end
 
 paretoObj.status.nadir = max(front);

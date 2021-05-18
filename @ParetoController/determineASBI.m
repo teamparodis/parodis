@@ -127,7 +127,7 @@ if any(paretoObj.status.nadir < J_opt)
 end
 
 inputs = {u};
-slacks = {sl};
+slacks = [sl];
 points = J_opt;
 paretoParameters = newParameters;
 

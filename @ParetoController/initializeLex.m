@@ -19,7 +19,6 @@ n = numel(paretoObj.status.conflictingObj);
 extremePoints = zeros(n); % array with extreme points
 
 inputsEP = cell(n,1);
-slacksEP = cell(n,1);
 weightsEP = eye(n); % array with weights as row vector, only weighting one objective
 
 costFcnOrderIdc = zeros(n); % order in which objective functions are used
@@ -71,7 +70,7 @@ for objective = 1:n
         fillSlacks.(slackVariableNames{idx}) = value(agent.controller.slackVariables.(slackVariableNames{idx}));
     end
     
-    slacksEP{objective,1} = fillSlacks;
+    slacksEP(objective,1) = fillSlacks;
 end
 
 paretoObj.status.utopia = min(extremePoints);

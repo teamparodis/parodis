@@ -8,7 +8,6 @@ n = numel(paretoObj.status.conflictingObj);
 UPNP = zeros(n);
 extremePoints = zeros(n);
 inputsEP = cell(n,1);
-slacksEP = cell(n,1);
 
 weights = eye(n);
 
@@ -35,7 +34,7 @@ optimizer = ParetoController.prepareWS(paretoObj, optimizeConstraints, costExpre
 for objective = 1:n 
     optOut = optimizer(weights(objective,:));
     
-    [extremePoints(objective,:), inputsEP{objective,1}, slacksEP{objective,1}] = paretoObj.calculateUnnormedObjectiveValues(optOut, agent);
+    [extremePoints(objective,:), inputsEP{objective,1}, slacksEP(objective,1)] = paretoObj.calculateUnnormedObjectiveValues(optOut, agent);
 end
 
 paretoObj.status.nadir = max(extremePoints);
