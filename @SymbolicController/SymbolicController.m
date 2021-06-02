@@ -6,6 +6,11 @@ classdef SymbolicController < Controller
         
     end
     
+    properties(Access = protected)
+        symPreviousU
+        symConsiderPreviousU
+    end
+    
     methods
         function obj = SymbolicController( numScenarios )
             obj@Controller(numScenarios);
@@ -16,6 +21,7 @@ classdef SymbolicController < Controller
             
             % enable verbosity (debug = 1, verbose = 2) without forcing optimizer
             obj.config.verbose = false;
+            
         end
 
         
@@ -34,6 +40,10 @@ classdef SymbolicController < Controller
                 predConstraints = obj.buildPredictionConstraints(model, model.d, obj.paramSyms, agent.config.T_s);
                 obj.constraints = [obj.constraints; predConstraints];
             end
+            
+            % symbols for the delta constraint du(0) = u(0|k) - u(k-1)
+            obj.symPreviousU = sdpvar(model.n_u, 1);
+            obj.symConsiderPreviousU = sdpvar;
             
             % build box and delta constraints from list
             obj.buildBoxConstraints(model);
@@ -109,6 +119,10 @@ classdef SymbolicController < Controller
                     optimizerSymbols{end+1} = obj.paramSyms.(name){s};
                 end
             end
+            
+            % add symbols for delta constraint on u(0|k)
+            optimizerSymbols{end+1} = obj.symPreviousU;
+            optimizerSymbols{end+1} = obj.symConsiderPreviousU;
             
             % define what optimizer should output
             output = {model.u};
@@ -284,6 +298,27 @@ classdef SymbolicController < Controller
     end
     
     methods (Access = protected)
+        function [values, valuesVector] = collectValues(obj, x0, agent)
+            [values, valuesVector] = collectValues@Controller(obj, x0, agent);
+            
+            if( size(agent.history.u, 2) > 0)
+                uPrev = agent.history.u(:, end);
+                considerPreviousU = 1;
+            else
+                uPrev = zeros(agent.model.n_u, 1);
+                considerPreviousU = 0;
+            end
+            
+            values{end+1} = uPrev;
+            values{end+1} = considerPreviousU;
+            
+            valuesVector = [valuesVector; uPrev(:); considerPreviousU];
+        end
+        
+        function [symbols] = collectSymbols(obj, agent)
+            symbols = collectSymbols@Controller(obj, agent);
+            symbols = [symbols; obj.symPreviousU(:), obj.considerPreviousU];
+        end
         
         function buildBoxConstraints(obj, model)
             % buildBoxConstraints  Adds box constraints using addConstraint
@@ -386,6 +421,169 @@ classdef SymbolicController < Controller
             end
         end
         
+        function constraints = getStateDeltaConstraints(obj, model, index, lb, ub, T_s_ref, T_s)
+            tag = [ 'delta on x' num2str(index(1)) '..' num2str(index(end)) ];
+            variableSym = model.x{1};
+            
+            % get horizontal length of variable
+            N_horz = size(variableSym, 2);
+
+            % lb is symbol, then get symbolic expression
+            if isstring(lb) || ischar(lb)
+                lb = obj.paramSyms.(lb);
+            end
+            
+            % if lb is symbol, create temporary variable lb_ to access
+            % size information
+            if iscell(lb)
+                lb_ = lb{1};
+            else
+                lb_ = lb;
+            end
+
+            % ub is symbol, then get symbolic expression
+            if isstring(ub) || ischar(ub)
+                ub = obj.paramSyms.(ub);
+            end
+            % if ub is symbol, create temporary variable ub_ to access
+            % size information
+            if iscell(ub)
+                ub_ = ub{1};
+            else
+                ub_ = ub;
+            end
+
+            if ~all( size(lb_) == [length(index), 1]) && ~all( size(lb_) == [length(index), N_horz - 1])
+                warning("PARODIS Controller:getStateDeltaConstraints dimensions of LB do not fit");
+            end
+
+            if ~all( size(ub_) == [length(index), 1]) && ~all( size(ub_) == [length(index), N_horz - 1])
+                warning("PARODIS Controller:getStateDeltaConstraints dimensions of UB do not fit");
+            end
+
+            % vector for scaling dx to appropriate time steps
+            scale = T_s(1:N_horz-1)/T_s_ref; % dx/du consider N_horz-1 many steps, and N_horz is shorter for du
+
+            N_S = length( model.x );
+
+            constraints = [];
+            for s=1:N_S
+                % if lb/ub is a constant and no parameter, use same lb/ub for every s
+                if iscell(lb)
+                    lb_ = lb{s};
+                else
+                    lb_ = lb;
+                end
+
+                if iscell(ub)
+                    ub_ = ub{s};
+                else
+                    ub_ = ub;
+                end
+
+                % roll out LB and scale according to T_s and T_s_ref
+                if size(lb_, 2) == 1
+                    lb_ = repmat(lb_, 1, N_horz - 1);
+                end
+                lb_ = lb_ .* scale;
+
+                % roll out UB and scale according to T_s and T_s_ref
+                if size(ub_, 2) == 1
+                    ub_ = repmat(ub_, 1, N_horz - 1);
+                end
+                ub_ = ub_ .* scale;
+
+                variableSym = model.x{s};
+
+                % yalmip constraint expression for x(n+1|k) - x(n|k)
+                constraint = lb_ <= variableSym(index, 2:end) - variableSym(index, 1:end-1) <= ub_;
+                
+                constraints = [constraints; constraint:sprintf('%s s = %i', tag, s)];
+            end
+        end
+        
+        function constraints = getInputDeltaConstraints(obj, model, index, lb, ub, T_s_ref, T_s)
+            tag = [ 'delta on u' num2str(index(1)) '..' num2str(index(end)) ];
+            variableSym = model.u;
+            
+            % get horizontal length of variable
+            N_horz = size(variableSym, 2);
+
+            % lb is symbol, then get symbolic expression
+            if isstring(lb) || ischar(lb)
+                lb = obj.paramSyms.(lb);
+            end
+            
+            % if lb is symbol, create temporary variable lb_ to access
+            % size information
+            if iscell(lb)
+                lb_ = lb{1};
+            else
+                lb_ = lb;
+            end
+
+            % ub is symbol, then get symbolic expression
+            if isstring(ub) || ischar(ub)
+                ub = obj.paramSyms.(ub);
+            end
+            % if ub is symbol, create temporary variable ub_ to access
+            % size information
+            if iscell(ub)
+                ub_ = ub{1};
+            else
+                ub_ = ub;
+            end
+
+            if ~all( size(lb_) == [length(index), 1]) && ~all( size(lb_) == [length(index), N_horz])
+                warning("PARODIS Controller:getInputDeltaConstraint dimensions of LB do not fit");
+            end
+
+            if ~all( size(ub_) == [length(index), 1]) && ~all( size(ub_) == [length(index), N_horz])
+                warning("PARODIS Controller:getInputDeltaConstraint dimensions of UB do not fit");
+            end
+
+            % vector for scaling dx to appropriate time steps
+            scale = [T_s(1) T_s(1:N_horz-1)]/T_s_ref; % for scaling du(0) = u(0|k) - u(k-1), we also need to scale with T_s(1), so we double it
+            N_S = length( model.x );
+
+            constraints = [];
+            for s=1:N_S
+                % if lb/ub is a constant and no parameter, use same lb/ub for every s
+                if iscell(lb)
+                    lb_ = lb{s};
+                else
+                    lb_ = lb;
+                end
+
+                if iscell(ub)
+                    ub_ = ub{s};
+                else
+                    ub_ = ub;
+                end
+
+                % roll out LB and scale according to T_s and T_s_ref
+                if size(lb_, 2) == 1
+                    lb_ = repmat(lb_, 1, N_horz);
+                end
+                lb_ = lb_ .* scale;
+
+                % roll out UB and scale according to T_s and T_s_ref
+                if size(ub_, 2) == 1
+                    ub_ = repmat(ub_, 1, N_horz);
+                end
+                ub_ = ub_ .* scale;
+
+                % yalmip constraint expression for u(n+1|k) - u(n|k) for n=1 .. N_pred-2
+                constraint = lb_(:, 2:end) <= variableSym(index, 2:end) - variableSym(index, 1:end-1) <= ub_(:, 2:end);
+                constraints = [constraints; constraint:sprintf('%s s = %i', tag, s)];
+                
+                % we need to consider du(0) = u(0|k) - u(k-1) separately, because if no previous u exists, i.e. in k=0
+                % we must deactivate the corresponding constraint
+                constraint_on_prev = lb_(:, 1) <= obj.symConsiderPreviousU * (variableSym(index, 1) - obj.symPreviousU(index, 1)) <= ub_(:, 1);
+                constraints = [constraints; constraint_on_prev:sprintf('%s on u(0|k) s = %i', tag, s)];
+            end
+        end
+        
         function buildDeltaConstraints(obj, model, T_s)
             % buildBoxConstraints  Adds delta constraints using addConstraint
             %                      during compile
@@ -393,97 +591,17 @@ classdef SymbolicController < Controller
             % build constraints from prenoted delta constraints
             for i=1:numel(obj.deltaConstraintsTemp)
                 [variable, index, lb, ub, T_s_ref] = obj.deltaConstraintsTemp{i}{:};
-                % extract second letter from dx
+                
+                % extract second letter from dx or du
                 variable = variable{1}(2);
-                tag = [ 'delta on ' char(variable) num2str(index(1)) '..' num2str(index(end)) ];
                 
-                % check if variable is a cell or not, since u is not a cell array
-                if iscell( model.(variable) )
-                    variableSym = model.(variable){1};
+                if strcmp(variable, 'u')
+                    constraints = obj.getInputDeltaConstraints(model, index, lb, ub, T_s_ref, T_s);
                 else
-                    variableSym = model.(variable);
+                    constraints = obj.getStateDeltaConstraints(model, index, lb, ub, T_s_ref, T_s);
                 end
                 
-                % get horizontal length of variable
-                N_horz = size(variableSym, 2);
-                
-                % lb is symbol, then get symbolic expression
-                if isstring(lb) || ischar(lb)
-                    lb = obj.paramSyms.(lb);
-                end
-                % if lb is symbol, create temporary variable lb_ to access
-                % size information
-                if iscell(lb)
-                    lb_ = lb{1};
-                else
-                    lb_ = lb;
-                end
-                
-                % ub is symbol, then get symbolic expression
-                if isstring(ub) || ischar(ub)
-                    ub = obj.paramSyms.(ub);
-                end
-                % if ub is symbol, create temporary variable ub_ to access
-                % size information
-                if iscell(ub)
-                    ub_ = ub{1};
-                else
-                    ub_ = ub;
-                end
-                
-                if ~all( size(lb_) == [length(index), 1]) && ~all( size(lb_) == [length(index), N_horz - 1])
-                    warning("PARODIS Controller:buildDeltaConstraints dimensions of LB do not fit");
-                end
-                
-                if ~all( size(ub_) == [length(index), 1]) && ~all( size(ub_) == [length(index), N_horz - 1])
-                    warning("PARODIS Controller:buildDeltaConstraints dimensions of UB do not fit");
-                end
-                
-                % vector for scaling dx to appropriate time steps
-                scale = T_s(1:N_horz-1)/T_s_ref; % dx/du consider N_horz-1 many steps, and N_horz is shorter for du
-                
-                if iscell( model.(variable) )
-                    N_S = length( model.(variable) );
-                else
-                    N_S = 1;
-                end
-
-                for s=1:N_S
-                    % if lb/ub is a constant and no parameter, use same lb/ub for every s
-                    if iscell(lb)
-                        lb_ = lb{s};
-                    else
-                        lb_ = lb;
-                    end
-                    
-                    if iscell(ub)
-                        ub_ = ub{s};
-                    else
-                        ub_ = ub;
-                    end
-                    
-                    % roll out LB and scale according to T_s and T_s_ref
-                    if size(lb_, 2) == 1
-                        lb_ = repmat(lb_, 1, N_horz - 1);
-                    end
-                    lb_ = lb_ .* scale;
-                    
-                    % roll out UB and scale according to T_s and T_s_ref
-                    if size(ub_, 2) == 1
-                        ub_ = repmat(ub_, 1, N_horz - 1);
-                    end
-                    ub_ = ub_ .* scale;
-                    
-                    if iscell( model.(variable) )
-                        variableSym = model.(variable){s};
-                    else
-                        variableSym = model.(variable);
-                    end
-                    
-                    % yalmip constraint expression for x(n+1|k) - x(n|k)
-                    constraint = lb_ <= variableSym(index, 2:end) -variableSym(index, 1:end-1) <= ub_;
-                    obj.addConstraint( constraint:sprintf('%s s = %i', tag, s) );
-                end
+                obj.addConstraint( constraints );
             end
         end
     end

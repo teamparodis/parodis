@@ -124,7 +124,7 @@ classdef Controller < handle
             if isa(arg, 'function_handle')
                 obj.implicitConstraints = [obj.implicitConstraints; {arg}];
             % otherwise add immediately
-            elseif isa(arg, 'constraint')
+            elseif isa(arg, 'constraint') || isa(arg, 'lmi')
                  obj.constraints = [obj.constraints; arg];
             end
         end
