@@ -87,11 +87,12 @@ classdef ParetoController < ExplicitController
             end
         end
         
-        function [uPred, slackValues, code, paretoStatus] = getInput(this, x0, agent, predefinedParetoParameters, additionalConstraints, additionalExpression)
+        function [uPred, slackValues, code, paretoStatus] = getInput(this, x0, uPrev, agent, predefinedParetoParameters, additionalConstraints, additionalExpression)
             % [uPred, slackValues, code, parameters] = getInput Retrieves an input trajectory and the realised values of the slack variables
             %                               as well as the yalmip problem code
             %
             %   x0                      assumed initial state
+            %   uPrev                   previously applied input u, i.e. u(k-1)
             %   dPred                   scenarios of predictions for disturbances over horizon
             %   paramValues             values for the parameters of the optimization problem
             %   agent                   calling agent
@@ -113,7 +114,7 @@ classdef ParetoController < ExplicitController
                 additionalExpression = [];
             end
             
-            [optimizeConstraints, costExpressions] = this.prepareProblem(x0, agent, additionalConstraints);
+            [optimizeConstraints, costExpressions] = this.prepareProblem(x0, uPrev, agent, additionalConstraints);
             
             if this.config.checkRedundancy
                 this.redundancyCheck(agent, optimizeConstraints, costExpressions);

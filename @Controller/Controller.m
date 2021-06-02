@@ -189,11 +189,12 @@ classdef Controller < handle
             obj.yalmipOptions = yalmipOptions;
         end
         
-        function [uPred, slackValues, code] = getInput(obj, x0, agent, additionalConstraints, additionalExpression)
+        function [uPred, slackValues, code] = getInput(obj, x0, uPrev, agent, additionalConstraints, additionalExpression)
             % [uPred, slackValues, code] = getInput Retrieves an input trajectory and the realised values of the slack variables
             %                               as well as the yalmip problem code
             % 
             %   x0                      assumed initial state
+            %   uPrev                   previously applied input u, i.e. u(k-1)
             %   dPred                   scenarios of predictions for disturbances over horizon
             %   paramValues             values for the parameters of the optimization problem            
             %   agent                   calling agent

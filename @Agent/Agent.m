@@ -225,10 +225,16 @@ classdef Agent < handle
             %                       in current status
             
             x0 = this.history.x(:, end);
-            if ~this.doPareto
-                [u, slacks, code] = this.controller.getInput(x0, this);
+            if size(this.history.u, 2) > 0 && ~any(isnan(this.history.u(:, end)))
+                uPrev = this.history.u(:, end);
             else
-                [u, slacks, code, paretoResults] = this.controller.getInput(x0, this);
+                uPrev = this.uPrev_0;
+            end
+                
+            if ~this.doPareto
+                [u, slacks, code] = this.controller.getInput(x0, uPrev, this);
+            else
+                [u, slacks, code, paretoResults] = this.controller.getInput(x0, uPrev, this);
                 
                 % should include fields: chosenParameters, parameters, front, utopia, nadir
                 this.status.pareto = paretoResults;

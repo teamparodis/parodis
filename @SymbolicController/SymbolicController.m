@@ -135,11 +135,12 @@ classdef SymbolicController < Controller
             
         end
         
-        function [uPred, slackValues, code] = getInput(obj, x0, agent, additionalConstraints, additionalExpression)
+        function [uPred, slackValues, code] = getInput(obj, x0, uPrev, agent, additionalConstraints, additionalExpression)
             % [uPred, slackValues, code] = getInput Retrieves an input trajectory and the realised values of the slack variables
             %                               as well as the yalmip problem code
             % 
             %   x0                      assumed initial state
+            %   uPrev                   previously applied input u, i.e. u(k-1)
             %   dPred                   scenarios of predictions for disturbances over horizon
             %   paramValues             values for the parameters of the optimization problem            
             %   agent                   calling agent
@@ -161,11 +162,11 @@ classdef SymbolicController < Controller
             % If feasibility test is enabled, test before trying to solve
             % actual problem
             if agent.config.testFeasibility
-                obj.testFeasibility(x0, agent, additionalConstraints);
+                obj.testFeasibility(x0, uPrev, agent, additionalConstraints);
             end
             
             %   collect values to replace symbolic variables
-            [values, valuesVector] = obj.collectValues(x0, agent);
+            [values, valuesVector] = obj.collectValues(x0, uPrev, agent);
             
             % if temporary constraints shall be set, optimizer cannot be used
             if ( ~isempty(obj.callbackTempConstraints)      ...
@@ -258,7 +259,7 @@ classdef SymbolicController < Controller
             end
         end
         
-        function result = testFeasibility(obj, x0, agent, additionalConstraints)
+        function result = testFeasibility(obj, x0, uPrev, agent, additionalConstraints)
             % testFeasibility   Performs a feasibility test on the the constraints
             % Solves an optimization problem with empty objective function
             % but all the constraints. If this problem can be solved, it
@@ -268,7 +269,7 @@ classdef SymbolicController < Controller
                 additionalConstraints = [];
             end
             
-            [~, valuesVector] = obj.collectValues(x0, agent);
+            [~, valuesVector] = obj.collectValues(x0, uPrev, agent);
             symbols = obj.collectSymbols( agent );
             
             
@@ -295,17 +296,10 @@ classdef SymbolicController < Controller
     end
     
     methods (Access = protected)
-        function [values, valuesVector] = collectValues(obj, x0, agent)
+        function [values, valuesVector] = collectValues(obj, x0, uPrev, agent)
             [values, valuesVector] = collectValues@Controller(obj, x0, agent);
-            
-            if( size(agent.history.u, 2) > 0)
-                uPrev = agent.history.u(:, end);
-            else
-                uPrev = agent.uPrev_0;
-            end
-            
+
             values{end+1} = uPrev;
-            
             valuesVector = [valuesVector; uPrev(:)];
         end
         
