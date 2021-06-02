@@ -8,7 +8,6 @@ classdef SymbolicController < Controller
     
     properties(Access = protected)
         symPreviousU
-        symConsiderPreviousU
     end
     
     methods
@@ -43,7 +42,6 @@ classdef SymbolicController < Controller
             
             % symbols for the delta constraint du(0) = u(0|k) - u(k-1)
             obj.symPreviousU = sdpvar(model.n_u, 1);
-            obj.symConsiderPreviousU = sdpvar;
             
             % build box and delta constraints from list
             obj.buildBoxConstraints(model);
@@ -122,7 +120,6 @@ classdef SymbolicController < Controller
             
             % add symbols for delta constraint on u(0|k)
             optimizerSymbols{end+1} = obj.symPreviousU;
-            optimizerSymbols{end+1} = obj.symConsiderPreviousU;
             
             % define what optimizer should output
             output = {model.u};
@@ -303,21 +300,18 @@ classdef SymbolicController < Controller
             
             if( size(agent.history.u, 2) > 0)
                 uPrev = agent.history.u(:, end);
-                considerPreviousU = 1;
             else
-                uPrev = zeros(agent.model.n_u, 1);
-                considerPreviousU = 0;
+                uPrev = agent.uPrev_0;
             end
             
             values{end+1} = uPrev;
-            values{end+1} = considerPreviousU;
             
-            valuesVector = [valuesVector; uPrev(:); considerPreviousU];
+            valuesVector = [valuesVector; uPrev(:)];
         end
         
         function [symbols] = collectSymbols(obj, agent)
             symbols = collectSymbols@Controller(obj, agent);
-            symbols = [symbols; obj.symPreviousU(:), obj.considerPreviousU];
+            symbols = [symbols; obj.symPreviousU(:)];
         end
         
         function buildBoxConstraints(obj, model)
@@ -577,9 +571,8 @@ classdef SymbolicController < Controller
                 constraint = lb_(:, 2:end) <= variableSym(index, 2:end) - variableSym(index, 1:end-1) <= ub_(:, 2:end);
                 constraints = [constraints; constraint:sprintf('%s s = %i', tag, s)];
                 
-                % we need to consider du(0) = u(0|k) - u(k-1) separately, because if no previous u exists, i.e. in k=0
-                % we must deactivate the corresponding constraint
-                constraint_on_prev = lb_(:, 1) <= obj.symConsiderPreviousU * (variableSym(index, 1) - obj.symPreviousU(index, 1)) <= ub_(:, 1);
+                % we need to consider du(0) = u(0|k) - u(k-1) separately, as it requires a parameter for the previous u
+                constraint_on_prev = lb_(:, 1) <= (variableSym(index, 1) - obj.symPreviousU(index, 1)) <= ub_(:, 1);
                 constraints = [constraints; constraint_on_prev:sprintf('%s on u(0|k) s = %i', tag, s)];
             end
         end

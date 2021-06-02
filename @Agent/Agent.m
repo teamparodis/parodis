@@ -41,9 +41,10 @@ classdef Agent < handle
     properties (SetAccess = protected)
         doPareto
         previousStatus
+        uPrev_0
     end
     methods
-        function obj = Agent(name, model, controller, T_s, x0)
+        function obj = Agent(name, model, controller, T_s, x0, uPrev_0)
             obj.name = name;
             obj.model = model;
             obj.controller = controller;
@@ -60,6 +61,12 @@ classdef Agent < handle
             obj.history.evalValues = struct;
             obj.history.simulationTime = [0];
             obj.history.costs = struct;
+            
+            % optional initial input to be assumed for constraint on u(0|k) = u(0|k) - u(k-1)
+            if nargin < 6
+                uPrev_0 = zeros(model.n_u, 1);
+            end
+            obj.uPrev_0 = uPrev_0;
             
             % call each cost function and retrieve horizon
             costNames = fieldnames(controller.costFunctionIndexes);
@@ -101,6 +108,11 @@ classdef Agent < handle
             if length(x0) ~= model.n_x
                 warning("PARODIS Agent:constructor The provided value for x0 is malformed (%s)", name);
             end
+            
+            if length(uPrev_0) ~= model.n_u
+                warning("PARODIS Agent:constructor The provided value for u0 is malformed (%s)", name);   
+            end
+            
         end
         
         function initialise(this)
@@ -536,6 +548,9 @@ classdef Agent < handle
             % call callback if it's set
             elseif ~isempty(this.callbackMeasureState) && T_current > 0
                 this.callbackMeasureState(this, this.simulation);
+            % quit if state isn't measured at all
+            else
+                return;
             end
             
             % if we are in step 0, do not re-evaluate
