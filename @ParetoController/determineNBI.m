@@ -42,7 +42,7 @@ for i = n+1:size(planePoints,1)
     end
     
     pos = i-n;
-    [front(pos,:), inputs{pos,1}, slacks{pos,1}] = calculateUnnormedObjectiveValues(paretoObj, optOut, agent);
+    [front(pos,:), inputs{pos,1}, slacks(pos,1)] = calculateUnnormedObjectiveValues(paretoObj, optOut, agent);
     
     if isequal(front(pos,:),[0 0 0])
         continue

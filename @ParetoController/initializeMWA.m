@@ -7,7 +7,6 @@ function [extremePoints, inputsEP, slacksEP, parametersEP] = initializeMWA(paret
 n = numel(paretoObj.status.conflictingObj);
 extremePoints = zeros(n);
 inputsEP = cell(n,1);
-slacksEP = cell(n,1);
 
 weights = eye(n);
 weights(weights == 0) = paretoObj.config.MWAweights;
@@ -20,7 +19,7 @@ optimizer = ParetoController.prepareWS(paretoObj, optimizeConstraints, costExpre
 for objective = 1:n
     optOut = optimizer(weights(objective,:));
     
-    [extremePoints(objective,:), inputsEP{objective,1}, slacksEP{objective,1}] = calculateUnnormedObjectiveValues(paretoObj, optOut, agent);
+    [extremePoints(objective,:), inputsEP{objective,1}, slacksEP(objective,1)] = calculateUnnormedObjectiveValues(paretoObj, optOut, agent);
 end
 
 paretoObj.status.utopia = min(extremePoints);

@@ -103,7 +103,7 @@ classdef Controller < handle
         
         function addBoxConstraint(obj, variable, index, lb, ub)
             if variable ~= 'x' && variable ~= 'u'
-                w
+                warning("PARODIS Controller:addBoxConstraint variable not supported (x or u only)");
                 return
             end
             
