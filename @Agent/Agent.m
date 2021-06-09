@@ -330,20 +330,20 @@ classdef Agent < handle
             
             costNames = fieldnames(this.controller.costFunctionIndexes);
             if length(costNames) > 0
-            	% only recalculate trajectory is disturbance wasn't measured
-            	% otherwise, xPred in status is already correct
-            	if this.config.disturbanceMeasured
-					xPred = this.status.xPred;
-				else
-					xPred = this.predictTrajectory( this.status.uPred, d, x0 );
-                end	
-
+                % only recalculate trajectory is disturbance wasn't measured
+                % otherwise, xPred in status is already correct
+                if this.config.disturbanceMeasured
+                    xPred = this.status.xPred;
+                else
+                    xPred = this.predictTrajectory( this.status.uPred, d, x0 );
+                end
+                
                 costValues_real = this.evaluateCostFunctions(xPred, this.status.uPred, d);
                 this.history.costs = mapToStruct(this.history.costs, @(s, field)( [s.(field) costValues_real.(field)(1)] ) );
                 
                 costValues_pred = this.evaluateCostFunctions(this.status.xPred, this.status.uPred, this.status.dPred);
                 this.virtualHistory.costs = mapToStruct(this.virtualHistory.costs, @(s, field)( [s.(field) costValues_pred.(field)(1)] ) );
-        	end
+            end
             
             this.history.simulationTime(:, end+1) = T_current + this.config.T_s(1);
         end
