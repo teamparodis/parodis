@@ -342,7 +342,7 @@ classdef Agent < handle
                 this.history.costs = mapToStruct(this.history.costs, @(s, field)( [s.(field) costValues_real.(field)(1)] ) );
                 
                 costValues_pred = this.evaluateCostFunctions(this.status.xPred, this.status.uPred, this.status.dPred);
-                this.virtualHistory.costs = mapToStruct(this.history.costs, @(s, field)( [s.(field) costValues_pred.(field)(1)] ) );
+                this.virtualHistory.costs = mapToStruct(this.virtualHistory.costs, @(s, field)( [s.(field) costValues_pred.(field)(1)] ) );
         	end
             
             this.history.simulationTime(:, end+1) = T_current + this.config.T_s(1);
