@@ -102,15 +102,15 @@ classdef ParetoController < ExplicitController
             
             code = 0;
             
-            if nargin < 4
+            if nargin < 5
                 predefinedParetoParameters = [];
             end
             
-            if nargin < 5
+            if nargin < 6
                 additionalConstraints = [];
             end
             
-            if nargin < 6
+            if nargin < 7
                 additionalExpression = [];
             end
             
