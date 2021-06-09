@@ -147,6 +147,7 @@ classdef Agent < handle
             
             this.config.evalFuns.(name) = {function_handle, scenarioDependent};
             this.history.evalValues.(name) = [];
+            this.virtualHistory.evalValues.(name) = [];
             this.status.evalPred.(name) = repmat( {NaN(size(this.config.T_s))}, this.controller.numScenarios, 1);
         end
         
@@ -277,21 +278,30 @@ classdef Agent < handle
             T_current = this.history.simulationTime(end);
             x0 = this.history.x(:, end);
             u0 = this.status.uPred(:, 1);
-            d0 = this.controller.getRealDisturbance(T_current, this, this.simulation.agents);
+            d0_pred = this.status.dPred{1}(:, 1);
+            d0_real = this.controller.getRealDisturbance(T_current, this, this.simulation.agents);
             
+            % update real history
             if ~isempty(externalData)
-                d0 = externalData.disturbances{1}(:, 1);
+                d0_real = externalData.disturbances{1}(:, 1);
             end
+            
+            % TODO: maybe change this to take averaged scenario?
+            x1_pred = this.status.xPred{1}(:, 2);
             
             if this.model.parameterVariant
-                x1 = this.model.ode0(x0, u0, d0, 1, extractScenario(this.status.paramValues, 1));
+                x1_real = this.model.ode0(x0, u0, d0_real, 1, extractScenario(this.status.paramValues, 1));
             else
-                x1 = this.model.ode0(x0, u0, d0);
+                x1_real = this.model.ode0(x0, u0, d0_real);
             end
             
-            this.history.x(:, end+1) = x1;
+            this.history.x(:, end+1) = x1_real;
             this.history.u(:, end+1) = u0;
-            this.history.d(:, end+1) = d0;
+            this.history.d(:, end+1) = d0_real;
+            
+            this.virtualHistory.x(:, end+1) = x1_pred;
+            this.virtualHistory.u(:, end+1) = u0;
+            this.virtualHistory.d(:, end+1) = d0_pred;
             
             if this.doPareto
                 this.history.pareto.fronts{end+1} = this.status.pareto.front;
@@ -303,13 +313,19 @@ classdef Agent < handle
                 this.history.pareto.frontDeterminationScheme{end+1} = this.controller.config.frontDeterminationScheme;
             end
             
-            evalValues = this.evaluateEvalFunctions(false);
-            this.history.evalValues = mapToStruct(this.history.evalValues, @(s, field)( [s.(field) evalValues.(field)] ) );
+            % to calculate predicted eval results, we call evaluateEvalFunctions with pred = true
+            % and then take the first entry for the first scenario
+            % TODO: maybe change this to take averaged scenario?
+            evalValues_pred = this.evaluateEvalFunctions(true);
+            this.virtualHistory.evalValues = mapToStruct(this.virtualHistory.evalValues, @(s, field)( [s.(field) evalValues_pred.(field){1}(1)] ) );
+            
+            evalValues_real = this.evaluateEvalFunctions(false);
+            this.history.evalValues = mapToStruct(this.history.evalValues, @(s, field)( [s.(field) evalValues_real.(field)] ) );
             
             % call each cost function and retrieve horizon
             d = this.status.dPred;
             for s=1:length(this.status.dPred)
-                d{s}(:, 1) = d0;
+                d{s}(:, 1) = d0_real;
             end
             
             costNames = fieldnames(this.controller.costFunctionIndexes);
@@ -322,8 +338,11 @@ classdef Agent < handle
 					xPred = this.predictTrajectory( this.status.uPred, d, x0 );
                 end	
 
-                costValues = this.evaluateCostFunctions(xPred, this.status.uPred, d);
-                this.history.costs = mapToStruct(this.history.costs, @(s, field)( [s.(field) costValues.(field)(1)] ) );
+                costValues_real = this.evaluateCostFunctions(xPred, this.status.uPred, d);
+                this.history.costs = mapToStruct(this.history.costs, @(s, field)( [s.(field) costValues_real.(field)(1)] ) );
+                
+                costValues_pred = this.evaluateCostFunctions(this.status.xPred, this.status.uPred, this.status.dPred);
+                this.virtualHistory.costs = mapToStruct(this.history.costs, @(s, field)( [s.(field) costValues_pred.(field)(1)] ) );
         	end
             
             this.history.simulationTime(:, end+1) = T_current + this.config.T_s(1);
@@ -599,7 +618,7 @@ classdef Agent < handle
             uPred(:, 1) = this.history.u(:, end);
             
             costValues = this.evaluateCostFunctions(xPred, uPred, dPred);
-            this.history.costValues = mapToStruct(this.history.costValues, @(s, field)( [s.(field)(:, 1:end-1) costValues.(field)(1) ] ) );
+            this.history.costs = mapToStruct(this.history.costs, @(s, field)( [s.(field)(:, 1:end-1) costValues.(field)(1) ] ) );
             
             % clear status again and set time step back to corresponding step
             this.status = currentStatus;
