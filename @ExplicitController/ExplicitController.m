@@ -483,12 +483,12 @@ classdef ExplicitController < Controller
                 constraints = [constraints; constraint:sprintf('%s s = %i', tag, s)];
                 
                 % we need to consider du(0) = u(0|k) - u(k-1) separately, as it requires a parameter for the previous u
-                constraint_on_prev = lb_(:, 1) <= (variableSym(index, 1) - uPrev) <= ub_(:, 1);
+                constraint_on_prev = lb_(:, 1) <= (variableSym(index, 1) - uPrev(index)) <= ub_(:, 1);
                 constraints = [constraints; constraint_on_prev:sprintf('%s on u(0|k) s = %i', tag, s)];
             end
         end
         
-        function buildDeltaConstraints(obj, paramValues, uPrev, model, T_s)
+        function constraints = buildDeltaConstraints(obj, paramValues, uPrev, model, T_s)
             % buildBoxConstraints  Adds delta constraints using addConstraint
             %                      during compile
             
@@ -501,9 +501,9 @@ classdef ExplicitController < Controller
                 variable = variable{1}(2);
                 
                 if strcmp(variable, 'u')
-                    deltaConstraints = obj.getInputDeltaConstraints(model, paramValues, index, lb, ub, T_s_ref, T_s);
+                    deltaConstraints = obj.getInputDeltaConstraints(model, paramValues, uPrev, index, lb, ub, T_s_ref, T_s);
                 else
-                    deltaConstraints = obj.getStateDeltaConstraints(model, paramValues, uPrev, index, lb, ub, T_s_ref, T_s);
+                    deltaConstraints = obj.getStateDeltaConstraints(model, paramValues, index, lb, ub, T_s_ref, T_s);
                 end
                 
                 constraints = [constraints; deltaConstraints];
