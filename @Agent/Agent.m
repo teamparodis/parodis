@@ -346,6 +346,7 @@ classdef Agent < handle
             end
             
             this.history.simulationTime(:, end+1) = T_current + this.config.T_s(1);
+            this.virtualHistory.simulationTime(:, end+1) = T_current + this.config.T_s(1);
         end
         
         function evalValues = evaluateEvalFunctions(this, predict)
@@ -633,17 +634,23 @@ classdef Agent < handle
             this.history.x(:, after_k+2:end) = [];
             this.history.u(:, after_k+1:end) = [];
             this.history.d(:, after_k+1:end) = [];
-            
+
             this.history.simulationTime(after_k+2:end) = [];
+
+            this.virtualHistory.x(:, after_k+2:end) = [];
+            this.virtualHistory.u(:, after_k+1:end) = [];
+            this.virtualHistory.d(:, after_k+1:end) = [];
             
             evalNames = fieldnames(this.history.evalValues);
             for idx = 1:length(evalNames)
                 this.history.evalValues.(evalNames{idx})(:, after_k+1:end) = [];
+                this.virtualHistory.evalValues.(evalNames{idx})(:, after_k+1:end) = [];
             end
             
             costNames = fieldnames(this.controller.costFunctionIndexes);
             for idx = 1:length(costNames)
                 this.history.costs.(costNames{idx})(:, after_k+1:end) = [];
+                this.virtualHistory.costs.(costNames{idx})(:, after_k+1:end) = [];
             end
             
             
