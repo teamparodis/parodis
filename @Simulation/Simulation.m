@@ -636,7 +636,7 @@ classdef Simulation < handle
                             costData_virtual = csvread(agentDir + "virtual" + filesep + "costs_" + costName + ".csv");
                             costs_history_virtual.(costName) = costData_virtual(1:k, 2:end)';
                         else
-                            costs_history_virtual.(costName) = NaN(size(costData));
+                            costs_history_virtual.(costName) = NaN(size( costs_history.(costName) ));
                         end
                     end
                     
@@ -654,7 +654,7 @@ classdef Simulation < handle
                                 evalData_virtual = csvread(agentDir + "virtual" + filesep + "eval_" + evalName + ".csv");
                                 eval_history_virtual.(evalName) = evalData_virtual(1:k, 2:end)';
                             else
-                                eval_history_virtual.(evalName) = NaN(size(evalData));
+                                eval_history_virtual.(evalName) = NaN(size(eval_history.(evalName)));
                             end
                             
                         else
