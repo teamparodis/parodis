@@ -641,6 +641,8 @@ classdef Agent < handle
             this.virtualHistory.u(:, after_k+1:end) = [];
             this.virtualHistory.d(:, after_k+1:end) = [];
             
+            this.virtualHistory.simulationTime(after_k+2:end) = [];
+            
             evalNames = fieldnames(this.history.evalValues);
             for idx = 1:length(evalNames)
                 this.history.evalValues.(evalNames{idx})(:, after_k+1:end) = [];
