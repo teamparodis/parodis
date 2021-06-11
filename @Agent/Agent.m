@@ -679,6 +679,8 @@ classdef Agent < handle
             this.log("storing history");
             
             directory = this.simulation.resultDirectory + filesep + this.name + filesep;
+            directory_virtual = directory + "virtual" + filesep;
+            
             timeVector = this.history.simulationTime;
             
             if ~exist(this.simulation.resultDirectory, 'dir')
@@ -689,9 +691,17 @@ classdef Agent < handle
                mkdir(directory)
             end
             
+            if ~exist(directory_virtual, 'dir')
+               mkdir(directory_virtual)
+            end
+            
             csvwrite(directory + "x.csv", [timeVector' this.history.x']);
             csvwrite(directory + "u.csv", [timeVector(1:end-1)' this.history.u']);
             csvwrite(directory + "d.csv", [timeVector(1:end-1)' this.history.d']);
+            
+            csvwrite(directory_virtual + "x.csv", [timeVector' this.virtualHistory.x']);
+            csvwrite(directory_virtual + "u.csv", [timeVector(1:end-1)' this.virtualHistory.u']);
+            csvwrite(directory_virtual + "d.csv", [timeVector(1:end-1)' this.virtualHistory.d']);
             
             % store each cost fun seperately
             costNames = fieldnames(this.controller.costFunctionIndexes);
@@ -699,6 +709,7 @@ classdef Agent < handle
                 costName = costNames{idx};
                 
                 csvwrite(directory + "costs_" + costName + ".csv", [timeVector(1:end-1)' this.history.costs.(costName)']);
+                csvwrite(directory_virtual + "costs_" + costName + ".csv", [timeVector(1:end-1)' this.virtualHistory.costs.(costName)']);
             end
             
             % store each eval fun seperately
@@ -707,6 +718,7 @@ classdef Agent < handle
                 evalName = evalNames{idx};
                 
                 csvwrite(directory + "eval_" + evalName + ".csv", [timeVector(1:end-1)' this.history.evalValues.(evalName)']);
+                csvwrite(directory_virtual + "eval_" + evalName + ".csv", [timeVector(1:end-1)' this.virtualHistory.evalValues.(evalName)']);
             end
             
             csvwrite(directory + "time.csv", timeVector');
