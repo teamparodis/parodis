@@ -46,6 +46,11 @@ classdef Agent < handle
         previousStatus
         uPrev_0
     end
+    
+    properties (Hidden = true)
+        difHistory
+    end
+    
     methods
         function obj = Agent(name, model, controller, T_s, x0, uPrev_0)
             obj.name = name;
@@ -78,6 +83,7 @@ classdef Agent < handle
             end
             
             obj.virtualHistory = obj.history;
+            obj.difHistory = obj.history;
             
             obj.history.pareto = struct;
             obj.history.pareto.fronts = {};
