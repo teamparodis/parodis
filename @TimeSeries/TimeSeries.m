@@ -312,9 +312,9 @@ classdef TimeSeries < Figure
 
                 % Get indices of variable to plot
                 if isempty(variableIndex)
-                    if any(strcmp({'x', 'd', 'u', 'xVirt', 'uVirt', 'xDif', 'uDif'}, variableName))
+                    if any(strcmp({'x', 'u', 'd', 'xVirt', 'uVirt', 'dVirt', 'xDif', 'uDif', 'dDif'}, variableName))
                         variableIndex = 1 : agent.model.(['n_' variableName(1)]);
-                    else % evalValues are always scalar!
+                    else % evalValues  are always scalar!
                         variableIndex = 1;
                     end
                 end
@@ -405,7 +405,7 @@ classdef TimeSeries < Figure
 
                 % if no variableIndexArray is given, take all indices
                 if isempty(variableIndexArray)
-                    if any(strcmp({'x', 'd', 'u'}, variableName))
+                    if any(strcmp({'x', 'u', 'd', 'xVirt', 'uVirt', 'dVirt', 'xDif', 'uDif', 'dDif'}, variableName))
                         variableIndexArray = 1 : agent.model.(['n_' variableName]);
                     else % evalValues are always scalar -> makes no sense for heatmaps?
                         variableIndexArray = 1;
