@@ -14,6 +14,10 @@ classdef ParetoController < ExplicitController
     
     methods
         function obj = ParetoController( numScenarios )
+            if nargin < 1
+                numScenarios = 1;
+            end
+            
             obj@ExplicitController(numScenarios);
             obj.type = 'pareto';
             obj.paretoCurrentStep = [];
