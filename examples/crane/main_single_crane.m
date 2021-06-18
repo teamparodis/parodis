@@ -48,5 +48,43 @@ fig.setFixedYLimits(1, [-10*pi/180 10*pi/180], 'right');
 sim.addPlot(fig);
 
 sim.config.livePlot = false;
+sim.config.storePlots = false;
+sim.config.storeResults = false;
 
 sim.runSimulation();
+
+%%
+animate(crane);
+
+function animate(crane)
+    fig = figure;
+    ax = axes;
+    l = 10;
+    dt = 0.25;
+    
+    for i=1:length(crane.history.x)
+        x = crane.history.x(:, i);
+        cat_pos = [x(1) 0];
+        container_pos = l * [sin(x(3)) -cos(x(3))] + cat_pos;
+        cla(ax);
+        hold on
+        rectangle('Position', [cat_pos(1)-0.25 cat_pos(2) 0.5 0.25]);
+        line([container_pos(1) cat_pos(1)], [container_pos(2) cat_pos(2)]);
+        line([-5 5], [0 0], 'Color', [0 0 0])
+        
+        w = 0.6;
+        h = 0.3;
+        
+        poly_x = [0 0 w w];
+        poly_y = [0 h h 0];
+        container_poly = translate( rotate( polyshape(poly_x, poly_y), x(3)*180/pi ), container_pos - [w h]/2);
+        %plot(container_poly)
+        
+        rectangle('Position', [container_pos(1)-0.3 container_pos(2)-0.15 0.6 0.3], 'FaceColor', [1 1 1]);
+        xlim([-5 5]);
+        ylim([-11 1]);
+        drawnow
+        %pause(dt);
+    end
+    disp("done");
+end
