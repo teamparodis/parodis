@@ -12,6 +12,10 @@ classdef SymbolicController < Controller
     
     methods
         function obj = SymbolicController( numScenarios )
+            if nargin < 1
+                numScenarios = 1;
+            end
+            
             obj@Controller(numScenarios);
             obj.type = 'symbolic';
             

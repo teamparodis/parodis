@@ -4,6 +4,10 @@ classdef ExplicitController < Controller
     
     methods
         function obj = ExplicitController( numScenarios )
+            if nargin < 1
+                numScenarios = 1;
+            end
+            
             obj@Controller(numScenarios);
             obj.type = 'explicit';
         end
