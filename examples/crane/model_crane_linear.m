@@ -15,7 +15,7 @@ Acont = [0 1 0 0;
          0 0 0 1; 
          0 0 -(mk+mc)*g/(mk*l) 0]; 
      
-Bcont = [0; 1; 0; -1/l]; 
+Bcont = [0; 1; 0; -1/l] / mk; 
 
 if withDisturbanceOnCrane
     Scont = Bcont;
