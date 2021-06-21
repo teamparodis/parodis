@@ -12,28 +12,48 @@ N_pred = 20;
 T_hor = repmat(0.25, 1, N_pred) ;
 
 %% 1) create model 
+doPareto = 0;
 
 model = createModel( @model_crane_linear, T_hor, 1 );
 
-%controller = ParetoController();
-%controller.config.frontDeterminationScheme = 'AWDS';
-controller = SymbolicController();
+if ~doPareto
+    controller = SymbolicController();
+else
+    controller = ParetoController();
+    controller.config.frontDeterminationScheme = 'AWDS';
+    
+end
 
 % cat may move 5m around origin
 controller.addBoxConstraint("x", 1, -5, 5);
 % max angle of rope +/- 10°
 controller.addBoxConstraint("x", 3, -10*pi/180, 10*pi/180);
 
-% add LQR cost function
-Q = diag([30 1 1000 10]);
-R = 5e-3;
 
-% controller.addSharedSlack('z', [1 1]);
-% controller.addConstraint(@(m,p,s)(s.z == 0))
 
-controller.addCostFunction( 'costs_q', LQRCostFunction(N_pred, Q, R) );
-%controller.addCostFunction( 'costs_r', LQRCostFunction(N_pred, zeros(4), R) );
-
+if ~doPareto
+    % add LQR cost function
+    % Q = diag([30 1 1000 10]);
+    Q = diag([10 1 0 1]);
+    R = 5e-6;
+    
+    
+    controller.addCostFunction( 'costs_q', LQRCostFunction(N_pred, Q, R) );
+    
+    % controller.addCostFunction( 'costs_q', LQRCostFunction(N_pred, Q, 0) );
+    % controller.addCostFunction( 'costs_r', LQRCostFunction(N_pred, zeros(4), R) );
+    
+else %do Pareto
+    controller.addSharedSlack('z', [1 1]);
+    controller.addConstraint(@(m,p,s)(s.z == 0))
+    
+    Q1 = diag([10 1 0 0]);
+    Q2 = diag([0 0 0 1]);
+    R = 5e-6;
+    
+    controller.addCostFunction( 'costs_q1', LQRCostFunction(N_pred, Q1, R/2) );
+    controller.addCostFunction( 'costs_q2', LQRCostFunction(N_pred, Q2, R/2) ); 
+end
 %% 2) create agent
 % initial state
 x0 = [-3 0 0 0]';
@@ -52,13 +72,15 @@ fig.addLine(crane, 'x', 3, 1, {'Angle'}, [], {}, {}, 'right');
 fig.setFixedYLimits(1, [-10*pi/180 10*pi/180], 'right');
 sim.addPlot(fig);
 
-% fig2 = ParetoPlot("test", 1, 1);
-% fig2.addParetoFront(crane, [1 2], 1, true);
-% sim.addPlot(fig2);
+if doPareto
+    fig2 = ParetoPlot("test", 1, 1);
+    fig2.addParetoFront(crane, [1 2], 1, true);
+    sim.addPlot(fig2);
+end
 
 sim.config.livePlot = false;
 sim.config.storePlots = false;
-sim.config.storeResults = false;
+sim.config.storeResults = true;
 
 sim.runSimulation();
 
