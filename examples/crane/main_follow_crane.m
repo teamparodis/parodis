@@ -20,15 +20,15 @@ controller_leader = SymbolicController();
 % cat may move 5m around origin
 controller_leader.addBoxConstraint("x", 1, -5, 5);
 % max angle of rope +/- 10°
-controller_leader.addBoxConstraint("x", 3, -10*pi/180, 10*pi/180);
+controller_leader.addBoxConstraint("x", 3, -5*pi/180, 5*pi/180);
 
 % add LQR cost function
-Q = diag([30 1 100 10]);
+Q = diag([30 1 4000 10]);
 R = 5;
 
 controller_leader.addCostFunction( 'costs', LQRCostFunction(N_pred, Q, R) );
 
-x0 = [-3 0 0 0]';
+x0 = [4 0 0 0]';
 leader = Agent('leader', model_leader, controller_leader, T_hor, x0);
 
 %% 2) create follower
@@ -46,7 +46,7 @@ Q_follower = diag([0 1 100 10]);
 R_follower = 5;
 
 controller_follower.addParam('x_ref', [1 N_pred+1], @param_x_ref, true);
-controller_follower.addCostFunction( 'follow', FollowerCostFunction );
+controller_follower.addCostFunction( 'follow', FollowerCostFunction, 100 );
 controller_follower.addCostFunction( 'costs', LQRCostFunction(N_pred, Q_follower, R_follower) );
 
 x0 = [-5 0 0 0]';

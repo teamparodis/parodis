@@ -1,12 +1,15 @@
 function [ode, n_x, n_u, n_d, linearRepresentation] = model_crane_linear( T_s, T_s_all )
 % x = [cat position, cat velocity, rope angle, rope angular velocity]
 % u = force on cat
+% d = wind force on container
 
 % constant values, all in SI units
 mc = 4000; % mass of crane in kg
 mk = 1000; % mass of cat in kg
 l = 10; % length of rope in m
 g = 9.81; % gravity
+
+withDisturbanceOnCrane = 1; 
 
 % continuos (linearized model) 
 
@@ -16,6 +19,10 @@ Acont = [0 1 0 0;
          0 0 -(mk+mc)*g/(mk*l) 0]; 
      
 Bcont = [0; 1; 0; -1/l] / mk; 
+
+% wind force acting only on container
+Scont = [0; 0; 0; 1/(mc*l)];
+
 
 % Discretize System(s)
 

@@ -13,11 +13,11 @@ T_hor = repmat(0.25, 1, N_pred) ;
 
 %% 1) create model 
 doPareto = 0;
-
-model = createModel( @model_crane_linear, T_hor, 1 );
+N_S = 1;
+model = createModel( @model_crane_linear_dist, T_hor, N_S);
 
 if ~doPareto
-    controller = SymbolicController();
+    controller = SymbolicController(N_S);
 else
     controller = ParetoController();
     controller.config.frontDeterminationScheme = 'AWDS';
@@ -29,7 +29,16 @@ controller.addBoxConstraint("x", 1, -5, 5);
 % max angle of rope +/- 10°
 controller.addBoxConstraint("x", 3, -10*pi/180, 10*pi/180);
 
-
+if model.n_d > 0
+    rho_air = 1.2;
+    v_wind = 10;
+    A_c = 4;
+    % assume constant wind force/pressure on container
+    controller.predDisturbanceSource = (1/2 * rho_air * v_wind^2 * A_c) * ones(1, N_pred);
+    % actual force is dependent on relative speed of container
+    %controller.realDisturbanceSource = @(~, crane, ~, ~)({ 1/2 * rho_air * (v_wind + crane.history.x(2, end) + 10*crane.history.x(4, end)*cos(crane.history.x(3, end)))^2 * A_c * cos(crane.history.x(3, end)) });
+    controller.realDisturbanceSource = @disturbance_wind;
+end
 
 if ~doPareto
     % add LQR cost function
@@ -83,6 +92,11 @@ sim.config.storePlots = false;
 sim.config.storeResults = true;
 
 sim.runSimulation();
+
+%%
+weights = crane.history.pareto.chosenParameters;
+diff = crane.history.pareto.nadirs  - crane.history.pareto.utopias;
+weights_corrected = weights./diff;
 
 %%
 animate_crane_sim(sim);
