@@ -1,4 +1,4 @@
-function [ode, n_x, n_u, n_d, linearRepresentation] = model_crane_linear( T_s, T_s_all )
+function [ode, n_x, n_u, n_d, linearRepresentation] = model_crane_linear_dist( T_s, T_s_all )
 % x = [cat position, cat velocity, rope angle, rope angular velocity]
 % u = force on cat
 % d = wind force on container
@@ -33,14 +33,9 @@ Adis = expm(Acont*DT);
 h1 = @(tau) expm(Acont*(DT-tau))*Bcont;
 Bdis = integral(h1, 0, DT, 'ArrayValued', true);
 
-if withDisturbanceOnCrane
-    h2 = @(tau) expm(Acont*(DT-tau))*Scont;
-    Sdis = integral(h2, 0, DT, 'ArrayValued', true);
-    ode = @(x, u, d)( Adis*x +  Bdis*u +  Sdis*d);
-else
-    Sdis = [];
-    ode = @(x, u, d)( Adis*x +  Bdis*u );
-end
+h2 = @(tau) expm(Acont*(DT-tau))*Scont;
+Sdis = integral(h2, 0, DT, 'ArrayValued', true);
+ode = @(x, u, d)( Adis*x +  Bdis*u +  Sdis*d);
 
 
 % additional linear representation

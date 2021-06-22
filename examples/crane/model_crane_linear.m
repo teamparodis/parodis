@@ -26,15 +26,8 @@ Adis = expm(Acont*DT);
 h1 = @(tau) expm(Acont*(DT-tau))*Bcont;
 Bdis = integral(h1, 0, DT, 'ArrayValued', true);
 
-if withDisturbanceOnCrane
-    h2 = @(tau) expm(Acont*(DT-tau))*Scont;
-    Sdis = integral(h2, 0, DT, 'ArrayValued', true);
-    ode = @(x, u, d)( Adis*x +  Bdis*u +  Sdis*d);
-else
-    Sdis = [];
-    ode = @(x, u, d)( Adis*x +  Bdis*u );
-end
-
+Sdis = [];
+ode = @(x, u, d)( Adis*x +  Bdis*u );
 
 % additional linear representation
 linearRepresentation = struct;
