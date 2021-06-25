@@ -48,16 +48,22 @@ sim.addPlots(figTrajectories);
 %% Plot Battery charging power
 
 fig3 = TimeSeries("other", 2, 1);
-fig3.addLine(emsAgent, 'eval', 'Pcharge_max', 1, {'P_{charge,max}'}, 1, {'Color', 'r'});
-fig3.addLine(emsAgent, 'eval', 'Pcharge', 1, {'P_{charge}'});
-fig3.addLine(emsAgent, 'eval', 'Pcharge_min', 1, {'P_{charge,min}'}, 1, {'Color', 'r'});
-fig3.setXLabel([], 'Time in min');
-fig3.setYLabel(1, 'Power in kWh', 'left');
-fig3.setSubplotTitle(1, 'Charging Power');
+% fig3.addLine(emsAgent, 'eval', 'Pcharge_max', 1, {'P_{charge,max}'}, 1, {'Color', 'r'});
+% fig3.addLine(emsAgent, 'eval', 'Pcharge', 1, {'P_{charge}'});
+% fig3.addLine(emsAgent, 'eval', 'Pcharge_min', 1, {'P_{charge,min}'}, 1, {'Color', 'r'});
+% fig3.setXLabel([], 'Time in min');
+% fig3.setYLabel(1, 'Power in kWh', 'left');
+% fig3.setSubplotTitle(1, 'Charging Power');
 
-fig3.addLine(emsAgent, 'cost', 'monetary_costs', 2, {'Mon. Costs'});
+fig3.addLine(emsAgent, 'x', 2, 1, {'Building Temperature'});
+fig3.setYLabel(1, 'Temperature in °C', 'left');
+fig3.setSubplotTitle(1, 'Building Temperature');
+fig3.setFixedYLimits(1, [19 23]);
+
+fig3.addLine(emsAgent, 'eval', 'monetary_costs', 2, {'Mon. Costs'});
 fig3.setYLabel(2, 'Monetary costs in €', 'left');
 fig3.setSubplotTitle(2, 'Monetary Costs');
+fig3.setFixedYLimits(2, [0 450]);
 
 fig3.setFixedXLimits(1, [0 T_sim]);
 fig3.setFixedXLimits(2, [0 T_sim]);
