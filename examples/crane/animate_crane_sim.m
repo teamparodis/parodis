@@ -1,5 +1,6 @@
 function animate_crane_sim(sim)
     fig = figure;
+    fig.Position = [1030 400 560 420];
     ax = axes;
     
     xlim([-5 5]);

@@ -83,6 +83,7 @@ fig = TimeSeries("crane trajectory", 1, 1);
 fig.addLine(crane, 'x', 1, 1, {'Position'}, [], {}, {}, 'left');
 fig.addLine(crane, 'x', 3, 1, {'Angle'}, [], {}, {}, 'right');
 fig.setFixedYLimits(1, [-10*pi/180 10*pi/180], 'right');
+fig.setFigureOptions({'Position', [440 400 560 420]});
 sim.addPlot(fig);
 
 if doPareto
