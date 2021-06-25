@@ -27,11 +27,11 @@ controller.addBoxConstraint("x", 3, -10*pi/180, 10*pi/180);
 controller.addBoxConstraint("u", 1, -2500, 2500);
 
 if model.n_d > 0
-    rho_air = 1.2;
-    v_wind = 20;
-    A_c = 4;
+    rho_air = 1.2; v_wind = 20; A_c = 4;
+    F_wind = 1/2 * rho_air * v_wind^2 * A_c;
     % assume constant wind force/pressure on container
-    controller.predDisturbanceSource = (1/2 * rho_air * v_wind^2 * A_c) * ones(1, N_pred);
+    controller.predDisturbanceSource = repmat(F_wind, 1, N_pred);
+    
     % actual force is dependent on relative speed of container
     %controller.realDisturbanceSource = @(~, crane, ~, ~)({ 1/2 * rho_air * (v_wind + crane.history.x(2, end) + 10*crane.history.x(4, end)*cos(crane.history.x(3, end)))^2 * A_c * cos(crane.history.x(3, end)) });
     controller.realDisturbanceSource = @disturbance_wind;
