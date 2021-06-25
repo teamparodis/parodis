@@ -6,7 +6,7 @@ angle_rope = x_crane(3);
 angle_velo_rope = x_crane(4);
 
 rho_air = 1.2;
-v_wind = 10;
+v_wind = 20;
 % container face area
 A_c = 4;
 % rope length

@@ -5,6 +5,8 @@ function animate_crane_sim(sim)
     
     xlim([-5 5]);
     ylim([-11 1]);
+    xlabel('x in m');
+    ylabel('y in m');
     hold on;
     
     L = 10;

@@ -64,14 +64,25 @@ sim.addAgent(leader);
 sim.addAgent(follower);
 
 %% 4) plots
-fig = TimeSeries("crane trajectory", 1, 1);
+fig = TimeSeries("crane trajectory", 2, 1);
 fig.addLine(leader, 'x', 1, 1, {'Position Leader'}, [], {}, {}, 'left');
 fig.addLine(follower, 'x', 1, 1, {'Position Follower'}, [], {}, {}, 'left');
 fig.addLine(leader, 'x', 3, 1, {'Angle Leader'}, [], {}, {}, 'right');
 fig.addLine(follower, 'x', 3, 1, {'Angle Follower'}, [], {}, {}, 'right');
 fig.setFixedYLimits(1, [-10*pi/180 10*pi/180], 'right');
-fig.setFigureOptions({'Position', [440 400 560 420]});
+fig.setXLabel(1, 'Time in s');
+fig.setYLabel(1, 'Position in m');
+fig.setYLabel(1, 'Angle in rad', 'right');
 
+fig.addLine(leader, 'u', 1, 2, {'Actor force leader'}, [], {}, {});
+fig.addLine(follower, 'u', 1, 2, {'Actor force follower'}, [], {}, {});
+fig.setFixedYLimits(1, [-5 5], 'left');
+fig.setFixedYLimits(1, [-10*pi/180 10*pi/180], 'right');
+fig.setFixedYLimits(2, [-2500 2500], 'left');
+fig.setYLabel(2, 'Force in N');
+fig.setXLabel(2, 'Time in s');
+
+fig.setFigureOptions({'Position', [440 400 560 420]});
 sim.addPlot(fig);
 
 sim.config.livePlot = false;
