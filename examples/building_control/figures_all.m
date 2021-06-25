@@ -6,7 +6,7 @@ color3 = [67,9,77]./256;
 color4 = [133,0,126]./256;
 
 figTrajectories = TimeSeries("states", 4, 1);
-
+figTrajectories.setFigureOptions({"Position", [85 270 630 735]});
 % Subplot 1: SoC vs Electricity
 figTrajectories.addLine(emsAgent, 'eval', 'E_max', 1, {'Limits'}, 1, {'Color', color1, 'LineStyle', '--'});
 figTrajectories.addLine(emsAgent, 'x',     1,        1, {'E'}, 1, {'Color', color1, }, {}, 'left');
@@ -48,6 +48,7 @@ sim.addPlots(figTrajectories);
 %% Plot Battery charging power
 
 fig3 = TimeSeries("other", 2, 1);
+fig3.setFigureOptions({"Position", [730 435 560 420]});
 % fig3.addLine(emsAgent, 'eval', 'Pcharge_max', 1, {'P_{charge,max}'}, 1, {'Color', 'r'});
 % fig3.addLine(emsAgent, 'eval', 'Pcharge', 1, {'P_{charge}'});
 % fig3.addLine(emsAgent, 'eval', 'Pcharge_min', 1, {'P_{charge,min}'}, 1, {'Color', 'r'});
