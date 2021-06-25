@@ -21,13 +21,14 @@ if ~doPareto
 else
     controller = ParetoController();
     controller.config.frontDeterminationScheme = 'AWDS';
-    
 end
 
 % cat may move 5m around origin
 controller.addBoxConstraint("x", 1, -5, 5);
 % max angle of rope +/- 10°
 controller.addBoxConstraint("x", 3, -10*pi/180, 10*pi/180);
+
+controller.addBoxConstraint("u", 1, -2500, 2500);
 
 if model.n_d > 0
     rho_air = 1.2;
@@ -42,15 +43,17 @@ end
 
 if ~doPareto
     % add LQR cost function
-    % Q = diag([30 1 1000 10]);
-    Q = diag([10 1 0 1]);
+     Q = diag([30 1 1000 10]);
+    Q = diag([1 10 0 10000]);
     R = 5e-6;
     
+    Q = diag([10 1 0 100]);
+    R = 1;
     
-    controller.addCostFunction( 'costs_q', LQRCostFunction(N_pred, Q, R) );
+    %controller.addCostFunction( 'costs_q', LQRCostFunction(N_pred, Q, R) );
     
-    % controller.addCostFunction( 'costs_q', LQRCostFunction(N_pred, Q, 0) );
-    % controller.addCostFunction( 'costs_r', LQRCostFunction(N_pred, zeros(4), R) );
+    controller.addCostFunction( 'costs_q', LQRCostFunction(N_pred, Q, 0), 0.6566 );
+    controller.addCostFunction( 'costs_r', LQRCostFunction(N_pred, zeros(4), R), 1.6e-6 );
     
 else %do Pareto
     controller.addSharedSlack('z', [1 1]);
@@ -58,10 +61,11 @@ else %do Pareto
     
     Q1 = diag([10 1 0 0]);
     Q2 = diag([0 0 0 1]);
-    R = 5e-6;
+    Q = diag([10 1 0 100]);
+    R = 1;
     
-    controller.addCostFunction( 'costs_q1', LQRCostFunction(N_pred, Q1, R/2) );
-    controller.addCostFunction( 'costs_q2', LQRCostFunction(N_pred, Q2, R/2) ); 
+    controller.addCostFunction( 'costs_q1', LQRCostFunction(N_pred, Q1, 0) ); 
+    controller.addCostFunction( 'costs_r', LQRCostFunction(N_pred, zeros(4), R) ); 
 end
 %% 2) create agent
 % initial state
@@ -90,7 +94,6 @@ end
 sim.config.livePlot = false;
 sim.config.storePlots = false;
 sim.config.storeResults = true;
-
 sim.runSimulation();
 
 %%
@@ -98,5 +101,32 @@ weights = crane.history.pareto.chosenParameters;
 diff = crane.history.pareto.nadirs  - crane.history.pareto.utopias;
 weights_corrected = weights./diff;
 
+T_max = 40 - T_hor(1)*N_pred;
+T_max = 20;
+idx = find(crane.history.simulationTime == T_max);
+weights_corrected = weights_corrected(1:idx, :);
+%weights_corrected = weights_corrected ./ sum(weights_corrected, 2);
+time = crane.history.simulationTime(1:idx);
+figure
+hold on
+grid on
+% scatter3(weights_corrected(:, 1), weights_corrected(:, 2), time, 20, (1:length(weights_corrected))/length(weights_corrected)-0.5, 'filled')
+% scatter3(data.weights_corrected(:, 1), data.weights_corrected(:, 2), time, 25, (1:length(data.weights_corrected))/length(data.weights_corrected)-0.5)
+% legend('Q2 = [0 0 0 10]', 'Q2 = [0 0 0 100]');
+% xlabel('Weight Q1')
+% ylabel('Weight Q2')
+% zlabel('Time');
+% data10 = load('weights10.mat');
+% data100 = load('weights.mat');
+figure
+hold on
+grid on
+scatter(time, weights_corrected(:, 2)./weights_corrected(:, 1))
+% scatter(time, data10.weights_corrected(:, 2)./data10.weights_corrected(:, 1))
+% scatter(time, data100.weights_corrected(:, 2)./data100.weights_corrected(:, 1))
+% legend('Q2 = [0 0 0 1]', 'Q2 = [0 0 0 10]', 'Q2 = [0 0 0 100]');
+ylabel('Weight Q1/ Weight Q2')
+xlabel('Time')
+
 %%
-animate_crane_sim(sim);
+%animate_crane_sim(sim);
