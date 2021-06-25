@@ -23,7 +23,7 @@ controller_leader.addBoxConstraint("x", 1, -5, 5);
 controller_leader.addBoxConstraint("x", 3, -5*pi/180, 5*pi/180);
 
 % add LQR cost function
-Q = diag([30 1 4000 10]);
+Q = diag([10 1 0 1000]);
 R = 5e-6;
 
 controller_leader.addCostFunction( 'costs', LQRCostFunction(N_pred, Q, R) );
@@ -42,11 +42,11 @@ controller_follower.addBoxConstraint("x", 1, -5, 5);
 controller_follower.addBoxConstraint("x", 3, -10*pi/180, 10*pi/180);
 
 % add LQR cost function
-Q_follower = diag([0 1 100 10]);
+Q_follower = diag([0 1 0 1000]);
 R_follower = 5e-6;
 
 controller_follower.addParam('x_ref', [1 N_pred+1], @param_x_ref, true);
-controller_follower.addCostFunction( 'follow', FollowerCostFunction, 100 );
+controller_follower.addCostFunction( 'follow', FollowerCostFunction, 10 );
 controller_follower.addCostFunction( 'costs', LQRCostFunction(N_pred, Q_follower, R_follower) );
 
 x0 = [-5 0 0 0]';
@@ -70,6 +70,7 @@ fig.addLine(follower, 'x', 1, 1, {'Position Follower'}, [], {}, {}, 'left');
 fig.addLine(leader, 'x', 3, 1, {'Angle Leader'}, [], {}, {}, 'right');
 fig.addLine(follower, 'x', 3, 1, {'Angle Follower'}, [], {}, {}, 'right');
 fig.setFixedYLimits(1, [-10*pi/180 10*pi/180], 'right');
+fig.setFigureOptions({'Position', [440 400 560 420]});
 
 sim.addPlot(fig);
 
