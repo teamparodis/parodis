@@ -1,7 +1,7 @@
 %% Add pareto plot for EMS
 
 figPareto = ParetoPlot("pareto1", 1, 1);
-
+figPareto.setFigureOptions({"Position", [1300 435 560 420]});
 % addParetoFront(agent, objectives, subplotIndex, cumulative,  ...
 % [optional]:    normalized, showLegend, optionsFront, optionsSolution,
 
