@@ -7,6 +7,10 @@ function model = createModel(model_fun, T_s, numScenarios, implicitPrediction, c
 %   implicitPrediction  if true, state predictions are implicit and defined by constraints x(k+1) == f(x(k), u(k), d(k))
 %                       otherwise x(k+1) is an explicit expression of u(k) and d(k)
 
+    if nargin < 3
+        numScenarios = 1;
+    end
+
     if nargin < 4
         implicitPrediction = false;
     end
