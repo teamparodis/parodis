@@ -84,6 +84,10 @@ classdef Controller < handle
         
         % creates sdp variables for parameters and store config for parameter
         function paramSymbol = addParam(obj, name, dimensions, source, scenarioDependent)
+            if nargin < 5
+                scenarioDependent = true;
+            end
+            
             obj.paramSyms.(name) = cell(obj.numScenarios, 1);
             obj.paramConfig.(name) = {dimensions, source, scenarioDependent};
             
