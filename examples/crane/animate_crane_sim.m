@@ -11,6 +11,7 @@ function animate_crane_sim(sim)
     
     L = 10;
     for i=1:length(sim.T)
+        title(sprintf("t = %.2f", sim.T(i)));
         cla(ax);
         if length(fieldnames(sim.agents)) > 1
             draw_crane(ax, sim.agents.leader, L, i);
