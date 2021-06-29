@@ -1,8 +1,11 @@
 classdef LQRCostFunction < CostFunction
-    %LQRCOSTFUNCTION Summary of this class goes here
-    %   Detailed explanation goes here
+    %LQRCOSTFUNCTION An LQR cost function for MPC
+    %   An LQR cost function for 
+    %   sum k=0..N_pred-1 dx(k)' Q dx(k) + u(k)' R u(k) + dx(N_pred) * Q_f * dx(N_Pred)
+    %   dx(k) = x(k) - x_ref(k)
+    %   Per default, Q_f = Q
     
-    properties
+    properties (SetAccess = protected)
         Q
         R
         Q_f
@@ -13,10 +16,21 @@ classdef LQRCostFunction < CostFunction
     end
     
     methods
-        function obj = LQRCostFunction(N_pred, Q, R, ref)
-            Q_f = Q;
+        function obj = LQRCostFunction(N_pred, Q, R, ref, Q_f)
+            % N_pred    length of prediction horizon
+            % Q         Q matrix for punishing the state x
+            % R                 R matrix for punishing the input u
+            % ref (optional)    Reference point for state, may be of size [n_x 1] or [n_x N_pred+1]
+            %                   If parameter shall be used, ref shall be the parameter's name as a string
+            %                   Default is the origin, i.e. zeros(n_x, 1)
+            % Q_f (optional)    Q matrix for the final state, i.e. x(N_pred) * Q_f * x(N_pred), defaults to Q
+            
             if nargin < 4
                 ref = repmat(zeros(length(Q), 1), 1, N_pred+1);
+            end
+            
+            if nargin < 5
+                Q_f = Q;
             end
             
             if isnumeric(ref) && all(size(ref) == [length(Q), 1])
