@@ -47,12 +47,14 @@ emsAgent.addEvalFunction( 'E_max', eval_const(83.3));
 sim = Simulation( 'building_control_example', T_sim );
 sim.config.livePlot = false; % to supress live plotting
 sim.config.doCopyCallingScript = false; % Otherwise, this script is copied to results-directory
+sim.config.storePlots = false;
+sim.config.storeResults = false;
 
 sim.addAgent(emsAgent);
 
 % add figures
 figures_all
-%figures_pareto
+figures_pareto
 
 tic;
 sim.runSimulation();
