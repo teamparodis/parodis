@@ -1,6 +1,6 @@
 function [ode, n_x, n_u, n_d, linearRepresentation] = model_crane_linear( T_s, T_s_all )
 % x = [cat position, cat velocity, rope angle, rope angular velocity]
-% u = force on cat
+% u = actor force on cat
 
 % constant values, all in SI units
 mc = 4000; % mass of crane in kg
@@ -27,18 +27,17 @@ h1 = @(tau) expm(Acont*(DT-tau))*Bcont;
 Bdis = integral(h1, 0, DT, 'ArrayValued', true);
 
 Sdis = [];
-ode = @(x, u, d)( Adis*x +  Bdis*u );
 
-% additional linear representation
+%% PARODIS
+ode = @(x, u, d)( Adis*x +  Bdis*u );
+n_x = length(Adis); % number of state
+n_u = size(Bdis, 2); % number of inputs
+n_d = size(Sdis, 2); % number of disturbances
+
+% additional linear representation, speeds things up internally
 linearRepresentation = struct;
 linearRepresentation.A = Adis;
 linearRepresentation.B = Bdis;
 linearRepresentation.S = Sdis;
-
-
-%% set output parameters
-n_x = length(Adis);
-n_u = size(Bdis, 2);
-n_d = size(Sdis, 2);
 
 end

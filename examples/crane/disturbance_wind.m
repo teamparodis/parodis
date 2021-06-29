@@ -5,7 +5,9 @@ v_cat = x_crane(2);
 angle_rope = x_crane(3);
 angle_velo_rope = x_crane(4);
 
+% density of air in kg/m^3
 rho_air = 1.2;
+% wind velocity in m/s
 v_wind = 20;
 % container face area
 A_c = 4;
