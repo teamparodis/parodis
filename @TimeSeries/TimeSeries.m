@@ -572,7 +572,7 @@ classdef TimeSeries < Figure
             historyType = 'virtualHistory'; 
             variableName = variableName(1:end-4); % delete 'Virt' part for easier handling
             
-        elseif endsWith(variableName, 'Dif') % if dif variable
+        elseif endsWith(variableName, 'Diff') % if dif variable
             
             % if status shall be plotted: return
             if strcmp(historyOrStatus, 'status')
@@ -580,11 +580,8 @@ classdef TimeSeries < Figure
             end
             
             isDif = 1; 
-            historyType = 'difHistory'; 
+            historyType = 'diffHistory'; 
             variableName = variableName(1:end-3); % delete 'Dif' part for easier handling
-
-            % temporarily create necessary difHistory 
-            obj.createDifHistory(agent, variableName, variableIndex); 
 
         else % regular value
 
