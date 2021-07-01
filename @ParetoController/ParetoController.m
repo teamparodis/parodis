@@ -66,14 +66,19 @@ classdef ParetoController < ExplicitController
             % output constists of the input u und the slack variables.
             
             n = numel(paretoObj.status.conflictingObj);
-            
-            u = optimizerOutput{1};
-            
             slackVariableNames = fieldnames(paretoObj.slackVariables);
-            slack = optimizerOutput(2:length(slackVariableNames)+1);
+            
+            % optimizerOutput is only a cell, if more than one variable is defined as output in the optimizer
+            % i.e., when additional slack variables are defined
+            if iscell(optimizerOutput)
+                u = optimizerOutput{1};
+
+                slack = optimizerOutput(2:length(slackVariableNames)+1);
+            else
+                u = optimizerOutput;
+            end
             
             slackValues = struct;
-            slackVariableNames = fieldnames(paretoObj.slackVariables);
             for idx = 1:length(slackVariableNames)
                 name = slackVariableNames{idx};
                 slackValues.(name) = slack{idx};
@@ -87,7 +92,8 @@ classdef ParetoController < ExplicitController
             objectiveValues = zeros(1,n);
             
             for obj = 1:n
-                objectiveValues(1,obj) = paretoObj.costFunctions{paretoObj.status.conflictingObj(obj)}.buildExpression(x,u,d,params,Ns,slackValues,agent.config.T_s);
+                idx = paretoObj.status.conflictingObj(obj);
+                objectiveValues(1,obj) = paretoObj.costFunctions{idx}.buildExpression(x, u, d, params, Ns, slackValues, agent.config.T_s);
             end
         end
         
