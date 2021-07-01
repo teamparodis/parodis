@@ -47,10 +47,10 @@ classdef Agent < handle
         uPrev_0
     end
     
-    properties (Hidden = true)
-        difHistory
+    properties (SetAccess = protected, Hidden = true)
+        diffHistory
     end
-    
+
     methods
         function obj = Agent(name, model, controller, T_s, x0, uPrev_0)
             obj.name = name;
@@ -83,7 +83,7 @@ classdef Agent < handle
             end
             
             obj.virtualHistory = obj.history;
-            obj.difHistory = obj.history;
+            obj.diffHistory = obj.history;
             
             obj.history.pareto = struct;
             obj.history.pareto.fronts = {};
@@ -355,6 +355,8 @@ classdef Agent < handle
             
             this.history.simulationTime(:, end+1) = T_current + this.config.T_s(1);
             this.virtualHistory.simulationTime(:, end+1) = T_current + this.config.T_s(1);
+            
+            this.updateDiffHistory();
         end
         
         function evalValues = evaluateEvalFunctions(this, predict)
@@ -626,6 +628,8 @@ classdef Agent < handle
             costValues = this.evaluateCostFunctions(xPred, uPred, dPred);
             this.history.costs = mapToStruct(this.history.costs, @(s, field)( [s.(field)(:, 1:end-1) costValues.(field)(1) ] ) );
             
+            this.updateDiffHistory();
+            
             % clear status again and set time step back to corresponding step
             this.status = currentStatus;
         end
@@ -667,6 +671,43 @@ classdef Agent < handle
                 this.history.pareto.utopias(after_k+1:end, :) = [];
                 this.history.pareto.nadirs(after_k+1:end, :) = [];
                 this.history.pareto.chosenParameters(after_k+1:end, :) = [];
+            end
+        end
+        
+        function updateDiffHistory(this)
+            % updateDiffHistory updates the diffHistory, which keeps track of essentially this.history - this.virtualHistory
+            if isempty(this.virtualHistory)
+                return;
+            end
+            
+            names = fieldnames(this.virtualHistory);
+            for idx = 1:length(names)
+                field = names{idx};
+                
+                if ~isfield(this.history, field)
+                    continue;
+                end
+                
+                if strcmp(field, 'simulationTime')
+                    continue;
+                end
+                
+                if isstruct(this.virtualHistory.(field))
+                    subnames = fieldnames(this.virtualHistory.(field));
+                    for idx_s = 1:length(subnames)
+                        subfield = subnames{idx_s};
+                        this.diffHistory.(field).(subfield) = updateField(this.history.(field), this.virtualHistory.(field), subfield);
+                    end
+                elseif ~isempty(this.virtualHistory.(field)) && ~isempty(this.history.(field))
+                    this.diffHistory.(field) = updateField(this.history, this.virtualHistory, field);
+                end
+            end
+            
+            function newValue = updateField(s1, s2, field)
+                l_history = size(s1.(field), 2);
+                l_virt_history = size(s2.(field), 2);
+                end_rel = min(l_history, l_virt_history);
+                newValue = s1.(field)(:, 1:end_rel) - s2.(field)(:, 1:end_rel);
             end
         end
         
