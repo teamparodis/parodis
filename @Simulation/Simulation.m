@@ -571,7 +571,6 @@ classdef Simulation < handle
                     
                     u_history = [restoredTime(1:end-1)' NaN(agent.model.n_u, k)'];
                     d_history = [restoredTime(1:end-1)' NaN(agent.model.n_d, k)'];
-                    weights_history = [restoredTime(1:end-1)' NaN(k, length(agent.controller.costFunctions))];
                     
                     % set seeds to empty, so they will be generated automatically
                     timestepSeeds = [];
@@ -592,13 +591,34 @@ classdef Simulation < handle
                         evalName = evalNames{i};
                         eval_history.(evalName) = NaN(1, k);
                     end
-                    % otherwise, recover from actual data
+                    
+                    % virtual history is the same in this case
+                    x_history_virtual = x_history;
+                    u_history_virtual = d_history;
+                    d_history_virtual = d_history;
+                    costs_history_virtual = costs_history;
+                    eval_history_virtual = eval_history;
+                    
+                % otherwise, recover from actual data
                 else
                     x_history = csvread(agentDir + "x.csv");
                     u_history = csvread(agentDir + "u.csv");
                     d_history = csvread(agentDir + "d.csv");
-                    %                     weights_history = csvread(agentDir + "weights.csv");
-                    restoredTime = x_history(:,1)';
+                    
+                    is_legacy = false;
+                    % legacy check, if simulation was run with or without virtual history
+                    if ~exist(agentDir + "virtual", 'dir')
+                        is_legacy = true;
+                        
+                        % in legacy mode, we set virtual history to NaN
+                        x_history_virtual = NaN(size(x_history));
+                        u_history_virtual = NaN(size(u_history));
+                        d_history_virtual = NaN(size(d_history));
+                    else
+                        x_history_virtual = csvread(agentDir + "virtual" + filesep + "x.csv");
+                        u_history_virtual = csvread(agentDir + "virtual" + filesep + "u.csv");
+                        d_history_virtual = csvread(agentDir + "virtual" + filesep + "d.csv");
+                    end
                     
                     % load seeds
                     timestepSeeds = csvread(agentDir + "timestep_seeds.csv")';
@@ -611,6 +631,13 @@ classdef Simulation < handle
                         
                         costData = csvread(agentDir + "costs_" + costName + ".csv");
                         costs_history.(costName) = costData(1:k, 2:end)';
+                        
+                        if ~is_legacy
+                            costData_virtual = csvread(agentDir + "virtual" + filesep + "costs_" + costName + ".csv");
+                            costs_history_virtual.(costName) = costData_virtual(1:k, 2:end)';
+                        else
+                            costs_history_virtual.(costName) = NaN(size( costs_history.(costName) ));
+                        end
                     end
                     
                     % store each eval fun seperately
@@ -622,6 +649,14 @@ classdef Simulation < handle
                         if exist(evalHistoryFile, 'file')
                             evalData = csvread(evalHistoryFile);
                             eval_history.(evalName) = evalData(1:k, 2:end)';
+                            
+                            if ~is_legacy
+                                evalData_virtual = csvread(agentDir + "virtual" + filesep + "eval_" + evalName + ".csv");
+                                eval_history_virtual.(evalName) = evalData_virtual(1:k, 2:end)';
+                            else
+                                eval_history_virtual.(evalName) = NaN(size(eval_history.(evalName)));
+                            end
+                            
                         else
                             eval_history.(evalName) = NaN(1, k);
                         end
@@ -634,6 +669,13 @@ classdef Simulation < handle
                 agent.history.d = d_history(1:k, 2:end)';
                 agent.history.costs = costs_history;
                 agent.history.evalValues = eval_history;
+                
+                agent.virtualHistory.simulationTime = x_history(1:k+1, 1)';
+                agent.virtualHistory.x = x_history_virtual(1:k+1, 2:end)';
+                agent.virtualHistory.u = u_history_virtual(1:k, 2:end)';
+                agent.virtualHistory.d = d_history_virtual(1:k, 2:end)';
+                agent.virtualHistory.costs = costs_history_virtual;
+                agent.virtualHistory.evalValues = eval_history_virtual;
                 
                 agent.setTimestepSeeds( timestepSeeds );
                 
@@ -652,7 +694,7 @@ classdef Simulation < handle
                         agent.history.pareto.utopias = NaN(k, length(agent.controller.costFunctions));
                         agent.history.pareto.nadirs = NaN(k, length(agent.controller.costFunctions));
                         agent.history.pareto.fronts = repmat({NaN}, k, 1);
-                        agent.history.pareto.weights = repmat({NaN}, k, 1);
+                        agent.history.pareto.paretoParameters = repmat({NaN}, k, 1);
                         agent.history.pareto.frontDeterminationScheme = repmat({NaN}, 1, k);
                     else
                         utopias = csvread(paretoDir + "utopias.csv");

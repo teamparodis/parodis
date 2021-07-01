@@ -9,6 +9,9 @@ classdef Agent < handle
         % struct containing realised trajectories, parameters
         history
         
+        % struct containing predicted trajectories, parameters
+        virtualHistory
+        
         % struct containing configuration parameters
         config
        
@@ -43,6 +46,11 @@ classdef Agent < handle
         previousStatus
         uPrev_0
     end
+    
+    properties (SetAccess = protected, Hidden = true)
+        diffHistory
+    end
+
     methods
         function obj = Agent(name, model, controller, T_s, x0, uPrev_0)
             obj.name = name;
@@ -73,6 +81,9 @@ classdef Agent < handle
             for idx = 1:length(costNames)
                 obj.history.costs.(costNames{idx}) = [];
             end
+            
+            obj.virtualHistory = obj.history;
+            obj.diffHistory = obj.history;
             
             obj.history.pareto = struct;
             obj.history.pareto.fronts = {};
@@ -142,6 +153,7 @@ classdef Agent < handle
             
             this.config.evalFuns.(name) = {function_handle, scenarioDependent};
             this.history.evalValues.(name) = [];
+            this.virtualHistory.evalValues.(name) = [];
             this.status.evalPred.(name) = repmat( {NaN(size(this.config.T_s))}, this.controller.numScenarios, 1);
         end
         
@@ -186,6 +198,8 @@ classdef Agent < handle
             
             this.updateRng();
             this.measureState( externalData );
+            
+            this.status.horizonTime = this.history.simulationTime(end) + cumsum([0 this.config.T_s(1:end-1)]);
             this.status.dPred = this.getDisturbance( externalData );
             this.setParameterValues();
             
@@ -216,7 +230,9 @@ classdef Agent < handle
             
             this.previousStatus = this.status;
             this.clearStatus();
+            
             this.status.k = this.status.k + 1;
+            
         end
         
         function u = getOptimalTrajectory(this)
@@ -252,35 +268,10 @@ classdef Agent < handle
             this.status.xPred = this.predictTrajectory(this.status.uPred, this.status.dPred, this.history.x(:, end));
             
             % call each eval function with pred = true and store result
-            evalNames = fieldnames(this.config.evalFuns);
-            for idx = 1:length(evalNames)
-                evalName = evalNames{idx};
-                evalFun = this.config.evalFuns.(evalName){1};
-                scenarioDependent = this.config.evalFuns.(evalName){2};
-                if scenarioDependent
-                    this.status.evalPred.(evalName) = cell(this.controller.numScenarios, 1);
-                    
-                    for s=1:this.controller.numScenarios
-                        data = evalFun(this, this.simulation, true, s);
-                        this.status.evalPred.(evalName){s} = data;
-                    end
-                else
-                    data = evalFun(this, this.simulation, true, 1);
-                    this.status.evalPred.(evalName) = repmat({data}, this.controller.numScenarios, 1);
-                end
-            end
+            this.status.evalPred = this.evaluateEvalFunctions(true);
             
             % call each cost function and retrieve horizon
-            costNames = fieldnames(this.controller.costFunctionIndexes);
-            for idx = 1:length(costNames)
-                costName = costNames{idx};
-                costIdx = this.controller.costFunctionIndexes.(costName);
-                costFunction = this.controller.costFunctions{costIdx};
-                
-                data = costFunction.evaluateHorizon( this.status.xPred, this.status.uPred, this.status.dPred, ... 
-                                                     this.status.paramValues, this.status.slackVariables, this.config.T_s );
-                this.status.costsPred.(costName) = data;
-            end
+            this.status.costsPred = this.evaluateCostFunctions(this.status.xPred, this.status.uPred, this.status.dPred);
         end
         
         function updateHistory(this, externalData)
@@ -295,21 +286,30 @@ classdef Agent < handle
             T_current = this.history.simulationTime(end);
             x0 = this.history.x(:, end);
             u0 = this.status.uPred(:, 1);
-            d0 = this.controller.getRealDisturbance(T_current, this, this.simulation.agents);
+            d0_pred = this.status.dPred{1}(:, 1);
+            d0_real = this.controller.getRealDisturbance(T_current, this, this.simulation.agents);
             
+            % update real history
             if ~isempty(externalData)
-                d0 = externalData.disturbances{1}(:, 1);
+                d0_real = externalData.disturbances{1}(:, 1);
             end
+            
+            % TODO: maybe change this to take averaged scenario?
+            x1_pred = this.status.xPred{1}(:, 2);
             
             if this.model.parameterVariant
-                x1 = this.model.ode0(x0, u0, d0, 1, extractScenario(this.status.paramValues, 1));
+                x1_real = this.model.ode0(x0, u0, d0_real, 1, extractScenario(this.status.paramValues, 1));
             else
-                x1 = this.model.ode0(x0, u0, d0);
+                x1_real = this.model.ode0(x0, u0, d0_real);
             end
             
-            this.history.x(:, end+1) = x1;
+            this.history.x(:, end+1) = x1_real;
             this.history.u(:, end+1) = u0;
-            this.history.d(:, end+1) = d0;
+            this.history.d(:, end+1) = d0_real;
+            
+            this.virtualHistory.x(:, end+1) = x1_pred;
+            this.virtualHistory.u(:, end+1) = u0;
+            this.virtualHistory.d(:, end+1) = d0_pred;
             
             if this.doPareto
                 this.history.pareto.fronts{end+1} = this.status.pareto.front;
@@ -321,44 +321,85 @@ classdef Agent < handle
                 this.history.pareto.frontDeterminationScheme{end+1} = this.controller.config.frontDeterminationScheme;
             end
             
-            % call each eval function with pred = false and store result
-            evalNames = fieldnames(this.config.evalFuns);
-            for idx = 1:length(evalNames)
-                evalName = evalNames{idx};
-                evalFun = this.config.evalFuns.(evalName){1};
-                
-                data = evalFun(this, this.simulation, false, []);
-                this.history.evalValues.(evalName)(:, end+1) = data;
-            end
+            % to calculate predicted eval results, we call evaluateEvalFunctions with pred = true
+            % and then take the first entry for the first scenario
+            % TODO: maybe change this to take averaged scenario?
+            evalValues_pred = this.evaluateEvalFunctions(true);
+            this.virtualHistory.evalValues = mapToStruct(this.virtualHistory.evalValues, @(s, field)( [s.(field) evalValues_pred.(field){1}(1)] ) );
+            
+            evalValues_real = this.evaluateEvalFunctions(false);
+            this.history.evalValues = mapToStruct(this.history.evalValues, @(s, field)( [s.(field) evalValues_real.(field)] ) );
             
             % call each cost function and retrieve horizon
             d = this.status.dPred;
             for s=1:length(this.status.dPred)
-                d{s}(:, 1) = d0;
+                d{s}(:, 1) = d0_real;
             end
             
             costNames = fieldnames(this.controller.costFunctionIndexes);
             if length(costNames) > 0
-            	% only recalculate trajectory is disturbance wasn't measured
-            	% otherwise, xPred in status is already correct
-            	if this.config.disturbanceMeasured
-					xPred = this.status.xPred;
-				else
-					xPred = this.predictTrajectory( this.status.uPred, d, x0 );
-				end	
-
-	            for idx = 1:length(costNames)
-	                costName = costNames{idx};
-	                costIdx = this.controller.costFunctionIndexes.(costName);
-	                costFunction = this.controller.costFunctions{costIdx};
-	                
-	                data = costFunction.evaluateHorizon( xPred, this.status.uPred, d, ... 
-	                                                     this.status.paramValues, this.status.slackVariables, this.config.T_s );
-	                this.history.costs.(costName)(:, end+1) = data(1);
-	            end
-        	end
+                % only recalculate trajectory is disturbance wasn't measured
+                % otherwise, xPred in status is already correct
+                if this.config.disturbanceMeasured
+                    xPred = this.status.xPred;
+                else
+                    xPred = this.predictTrajectory( this.status.uPred, d, x0 );
+                end
+                
+                costValues_real = this.evaluateCostFunctions(xPred, this.status.uPred, d);
+                this.history.costs = mapToStruct(this.history.costs, @(s, field)( [s.(field) costValues_real.(field)(1)] ) );
+                
+                costValues_pred = this.evaluateCostFunctions(this.status.xPred, this.status.uPred, this.status.dPred);
+                this.virtualHistory.costs = mapToStruct(this.virtualHistory.costs, @(s, field)( [s.(field) costValues_pred.(field)(1)] ) );
+            end
             
             this.history.simulationTime(:, end+1) = T_current + this.config.T_s(1);
+            this.virtualHistory.simulationTime(:, end+1) = T_current + this.config.T_s(1);
+            
+            this.updateDiffHistory();
+        end
+        
+        function evalValues = evaluateEvalFunctions(this, predict)
+            evalValues = struct;
+            
+            evalNames = fieldnames(this.config.evalFuns);
+            for idx = 1:length(evalNames)
+                evalName = evalNames{idx};
+                evalFun = this.config.evalFuns.(evalName){1};
+                scenarioDependent = this.config.evalFuns.(evalName){2};
+                if predict
+                    if scenarioDependent
+                        this.status.evalPred.(evalName) = cell(this.controller.numScenarios, 1);
+
+                        for s=1:this.controller.numScenarios
+                            data = evalFun(this, this.simulation, true, s);
+                            evalValues.(evalName){s} = data;
+                        end
+                    else
+                        data = evalFun(this, this.simulation, true, 1);
+                        evalValues.(evalName) = repmat({data}, this.controller.numScenarios, 1);
+                    end
+                else
+                    data = evalFun(this, this.simulation, predict, []);
+                    evalValues.(evalName) = data;
+                end
+            end
+            
+        end
+        
+        function costValues = evaluateCostFunctions(this, xPred, uPred, dPred)
+            costValues = struct;
+            
+            costNames = fieldnames(this.controller.costFunctionIndexes);
+            for idx = 1:length(costNames)
+                costName = costNames{idx};
+                costIdx = this.controller.costFunctionIndexes.(costName);
+                costFunction = this.controller.costFunctions{costIdx};
+                
+                data = costFunction.evaluateHorizon( xPred, uPred, dPred, ... 
+                                                     this.status.paramValues, this.status.slackVariables, this.config.T_s );
+                costValues.(costName) = data;
+            end
         end
         
         function xPred = predictTrajectory(this, uPred, dPred, x0)
@@ -541,11 +582,8 @@ classdef Agent < handle
                 externalData = [];
             end
             
-            % build time vector from current simulation time over horizon
+            % get current simulation time in agent time
             T_current = this.history.simulationTime(end);
-            T_horizon = T_current + cumsum([0 this.config.T_s(1:end-1)]);
-            
-            this.status.horizonTime = T_horizon;
             
             % if external data was provided
             if ~isempty(externalData)
@@ -569,17 +607,29 @@ classdef Agent < handle
             
             % restore previous status to re-evaluate eval functions for the modified state
             this.status = this.previousStatus;
-
+            
             % re-evaluate eval functions for the modified state
-            evalNames = fieldnames(this.config.evalFuns);
-            for idx = 1:length(evalNames)
-                evalName = evalNames{idx};
-                evalFun = this.config.evalFuns.(evalName){1};
-                data = evalFun(this, this.simulation, false, []);
-                
-                this.history.evalValues.(evalName)(:, end) = data;
-            end
+            evalValues = this.evaluateEvalFunctions(false);
+            this.history.evalValues = mapToStruct(this.history.evalValues, @(s, field)( [s.(field)(:, 1:end-1) evalValues.(field)] ) );
 
+            % re-evaluate cost horizon for the modified state
+            xPred = this.status.xPred;
+            dPred = this.status.dPred;
+            uPred = this.status.uPred;
+            
+            % set actually realised state, disturbances and inputs as first value in horizon
+            % since we only use the first entry of evaluateHorizon, we don't need to adjust the rest of the horizon
+            for s=1:length(xPred)
+                xPred{s}(:, 1) = this.history.x(:, end);
+                dPred{s}(:, 1) = this.history.d(:, end);
+            end
+            uPred(:, 1) = this.history.u(:, end);
+            
+            costValues = this.evaluateCostFunctions(xPred, uPred, dPred);
+            this.history.costs = mapToStruct(this.history.costs, @(s, field)( [s.(field)(:, 1:end-1) costValues.(field)(1) ] ) );
+            
+            this.updateDiffHistory();
+            
             % clear status again and set time step back to corresponding step
             this.status = currentStatus;
         end
@@ -593,17 +643,25 @@ classdef Agent < handle
             this.history.x(:, after_k+2:end) = [];
             this.history.u(:, after_k+1:end) = [];
             this.history.d(:, after_k+1:end) = [];
-            
+
             this.history.simulationTime(after_k+2:end) = [];
+
+            this.virtualHistory.x(:, after_k+2:end) = [];
+            this.virtualHistory.u(:, after_k+1:end) = [];
+            this.virtualHistory.d(:, after_k+1:end) = [];
+            
+            this.virtualHistory.simulationTime(after_k+2:end) = [];
             
             evalNames = fieldnames(this.history.evalValues);
             for idx = 1:length(evalNames)
                 this.history.evalValues.(evalNames{idx})(:, after_k+1:end) = [];
+                this.virtualHistory.evalValues.(evalNames{idx})(:, after_k+1:end) = [];
             end
             
             costNames = fieldnames(this.controller.costFunctionIndexes);
             for idx = 1:length(costNames)
                 this.history.costs.(costNames{idx})(:, after_k+1:end) = [];
+                this.virtualHistory.costs.(costNames{idx})(:, after_k+1:end) = [];
             end
             
             
@@ -613,6 +671,43 @@ classdef Agent < handle
                 this.history.pareto.utopias(after_k+1:end, :) = [];
                 this.history.pareto.nadirs(after_k+1:end, :) = [];
                 this.history.pareto.chosenParameters(after_k+1:end, :) = [];
+            end
+        end
+        
+        function updateDiffHistory(this)
+            % updateDiffHistory updates the diffHistory, which keeps track of essentially this.history - this.virtualHistory
+            if isempty(this.virtualHistory)
+                return;
+            end
+            
+            names = fieldnames(this.virtualHistory);
+            for idx = 1:length(names)
+                field = names{idx};
+                
+                if ~isfield(this.history, field)
+                    continue;
+                end
+                
+                if strcmp(field, 'simulationTime')
+                    continue;
+                end
+                
+                if isstruct(this.virtualHistory.(field))
+                    subnames = fieldnames(this.virtualHistory.(field));
+                    for idx_s = 1:length(subnames)
+                        subfield = subnames{idx_s};
+                        this.diffHistory.(field).(subfield) = updateField(this.history.(field), this.virtualHistory.(field), subfield);
+                    end
+                elseif ~isempty(this.virtualHistory.(field)) && ~isempty(this.history.(field))
+                    this.diffHistory.(field) = updateField(this.history, this.virtualHistory, field);
+                end
+            end
+            
+            function newValue = updateField(s1, s2, field)
+                l_history = size(s1.(field), 2);
+                l_virt_history = size(s2.(field), 2);
+                end_rel = min(l_history, l_virt_history);
+                newValue = s1.(field)(:, 1:end_rel) - s2.(field)(:, 1:end_rel);
             end
         end
         
@@ -639,6 +734,8 @@ classdef Agent < handle
             this.log("storing history");
             
             directory = this.simulation.resultDirectory + filesep + this.name + filesep;
+            directory_virtual = directory + "virtual" + filesep;
+            
             timeVector = this.history.simulationTime;
             
             if ~exist(this.simulation.resultDirectory, 'dir')
@@ -649,9 +746,17 @@ classdef Agent < handle
                mkdir(directory)
             end
             
+            if ~exist(directory_virtual, 'dir')
+               mkdir(directory_virtual)
+            end
+            
             csvwrite(directory + "x.csv", [timeVector' this.history.x']);
             csvwrite(directory + "u.csv", [timeVector(1:end-1)' this.history.u']);
             csvwrite(directory + "d.csv", [timeVector(1:end-1)' this.history.d']);
+            
+            csvwrite(directory_virtual + "x.csv", [timeVector' this.virtualHistory.x']);
+            csvwrite(directory_virtual + "u.csv", [timeVector(1:end-1)' this.virtualHistory.u']);
+            csvwrite(directory_virtual + "d.csv", [timeVector(1:end-1)' this.virtualHistory.d']);
             
             % store each cost fun seperately
             costNames = fieldnames(this.controller.costFunctionIndexes);
@@ -659,6 +764,7 @@ classdef Agent < handle
                 costName = costNames{idx};
                 
                 csvwrite(directory + "costs_" + costName + ".csv", [timeVector(1:end-1)' this.history.costs.(costName)']);
+                csvwrite(directory_virtual + "costs_" + costName + ".csv", [timeVector(1:end-1)' this.virtualHistory.costs.(costName)']);
             end
             
             % store each eval fun seperately
@@ -667,6 +773,7 @@ classdef Agent < handle
                 evalName = evalNames{idx};
                 
                 csvwrite(directory + "eval_" + evalName + ".csv", [timeVector(1:end-1)' this.history.evalValues.(evalName)']);
+                csvwrite(directory_virtual + "eval_" + evalName + ".csv", [timeVector(1:end-1)' this.virtualHistory.evalValues.(evalName)']);
             end
             
             csvwrite(directory + "time.csv", timeVector');
