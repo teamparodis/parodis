@@ -312,7 +312,7 @@ classdef TimeSeries < Figure
 
                 % Get indices of variable to plot
                 if isempty(variableIndex)
-                    if any(strcmp({'x', 'u', 'd', 'xVirt', 'uVirt', 'dVirt', 'xDif', 'uDif', 'dDif'}, variableName))
+                    if any(strcmp({'x', 'u', 'd', 'xVirt', 'uVirt', 'dVirt', 'xDiff', 'uDiff', 'dDiff'}, variableName))
                         variableIndex = 1 : agent.model.(['n_' variableName(1)]);
                     else % evalValues  are always scalar!
                         variableIndex = 1;
