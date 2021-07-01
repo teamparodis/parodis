@@ -77,6 +77,10 @@ classdef Controller < handle
                 defaultWeight = 1;
             end
             
+            if isfield(obj.costFunctionIndexes, name)
+                warning("PARODIS Controller:addCostFunction A cost function with name '%s' was already added", name);
+            end
+            
             obj.costFunctions{end+1} = costFunctionInstance;
             obj.defaultWeights(end+1) = defaultWeight;
             obj.costFunctionIndexes.(name) = length(obj.costFunctions);
