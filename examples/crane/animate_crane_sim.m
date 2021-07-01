@@ -9,9 +9,10 @@ function animate_crane_sim(sim)
     ylabel('y in m');
     hold on;
     
+    framerate = 24;
     L = 10;
     for i=1:length(sim.T)
-        title(sprintf("t = %.2f", sim.T(i)));
+        tic;
         cla(ax);
         if length(fieldnames(sim.agents)) > 1
             draw_crane(ax, sim.agents.leader, L, i);
@@ -19,9 +20,11 @@ function animate_crane_sim(sim)
         else
             draw_crane(ax, sim.agents.crane, L, i);
         end
+        dt = toc;
         
         drawnow;
-        %pause(dt);
+        pause(1/framerate - dt);
+        title(sprintf("t = %.2f", sim.T(i)));
     end
     disp("done");
 end
