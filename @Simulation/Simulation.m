@@ -87,7 +87,7 @@ classdef Simulation < handle
             obj.config.storePlots = true;
             obj.config.autoSave = false;
             obj.config.doCopyCSVSources = false;
-            obj.config.doCopyCallingScript = true;
+            obj.config.doCopyCallingScript = false;
             
             obj.initialSeed = randi(2^31-1);
             
