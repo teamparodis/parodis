@@ -198,6 +198,8 @@ classdef Agent < handle
             
             this.updateRng();
             this.measureState( externalData );
+            
+            this.status.horizonTime = this.history.simulationTime(end) + cumsum([0 this.config.T_s(1:end-1)]);
             this.status.dPred = this.getDisturbance( externalData );
             this.setParameterValues();
             
@@ -578,11 +580,8 @@ classdef Agent < handle
                 externalData = [];
             end
             
-            % build time vector from current simulation time over horizon
+            % get current simulation time in agent time
             T_current = this.history.simulationTime(end);
-            T_horizon = T_current + cumsum([0 this.config.T_s(1:end-1)]);
-            
-            this.status.horizonTime = T_horizon;
             
             % if external data was provided
             if ~isempty(externalData)
