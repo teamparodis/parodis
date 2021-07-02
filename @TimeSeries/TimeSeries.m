@@ -227,9 +227,15 @@ classdef TimeSeries < Figure
             if ~any(strcmp(obj.dependsOnAgents, callingAgent.name))
                 return
             end
+            
+            % if individual figure should not be plotted live and this is not the final plot, return 
+            if ~obj.plotLive && ~isFinalUpdate 
+                return
+            end
 
             % Turn on only for debugging!
-            show@Figure(obj);
+%             show@Figure(obj);
+
             % First clear all axes and reset temporary class properties
             for jj = 1 : size(obj.subplotAxisHandles, 2)
                 % Delete only subplots which depend on callingAgent !
@@ -250,14 +256,8 @@ classdef TimeSeries < Figure
                 end
             end
 
-%             % Delete lines which are hidden
-%             for kk = 1 : size(obj.linesToDelete, 2)
-%                 delete(obj.linesToDelete{kk});
-%             end
-%             obj.linesToDelete = {};
 
             obj.subplotAxisPredictionTimesAndWidths = cell(1, obj.nRows*obj.nColumns);
-%             obj.subplotTempXLimits = cell(1, obj.nRows*obj.nColumns);
 
             %% go through lineSeries
             for ii = 1 : size(obj.lineSeries, 2)
@@ -349,10 +349,10 @@ classdef TimeSeries < Figure
                             obj.subplotLinesToDelete{subplotIndex}{end+1} = hReal;
                         end
                     end
-                    % Plot status
+                    % Plot status ... 
                     [plotTimePred, plotDataPred] = obj.readInDataToPlot(agent, variableName, takeVariableIndex, scenario, 'status', 'line');
-                    % But plot only if live is enabled and there is a status to plot
-                    if obj.plotLive && ~isempty(plotDataPred)
+                    % ... but only if there is a status to plot
+                    if ~isempty(plotDataPred)
                         if isempty(hColors)
                             hPred = stairs(axesHandle, plotTimePred, plotDataPred, '--', 'HandleVisibility', 'off', optionsPred{:});
                         else
