@@ -35,7 +35,7 @@ if nargin == 4 || isempty(preselectedParameters)
     % if the number of points is less than the number of conflicting objectives the ASBI
     % cannot be applied
     if numPoints < numel(paretoObj.status.conflictingObj)
-        warning("Not enough points found for AWDS! :(")
+        warning("Not enough points found for ASBI! :(")
         inputs = [];
         paretoParameters = [];
         slacks = [];
