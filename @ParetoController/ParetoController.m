@@ -327,6 +327,7 @@ classdef ParetoController < ExplicitController
             config.extremePointFunction = 'MWAN';
             config.metricFunction = 'CUP';
             config.frontDeterminationScheme = 'FPBI';
+            config.printSolverStatus = true;
             
             config.getKneeRegion = false;
             config.AWDSrefinement = 0.4;
