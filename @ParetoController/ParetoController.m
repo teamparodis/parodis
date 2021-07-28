@@ -124,6 +124,17 @@ classdef ParetoController < ExplicitController
                 additionalExpression = [];
             end
             
+            if agent.config.warmstart && ~isempty(agent.previousStatus)
+                if ~isempty(agent.previousStatus.xPred{1})
+                    assign(agent.model.x{1}, [agent.previousStatus.xPred{1}(:, 2:end),...
+                        agent.previousStatus.xPred{1}(:, end)]);
+                end
+                if ~isempty(agent.previousStatus.uPred)
+                    assign(agent.model.u, [agent.previousStatus.uPred(:, 2:end),...
+                        agent.previousStatus.uPred(:, end)]);
+                end
+            end
+            
             [optimizeConstraints, costExpressions] = this.prepareProblem(x0, uPrev, agent, additionalConstraints);
             
             if this.config.checkRedundancy
