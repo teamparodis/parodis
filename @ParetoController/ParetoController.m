@@ -124,7 +124,7 @@ classdef ParetoController < ExplicitController
                 additionalExpression = [];
             end
             
-            if agent.config.warmstart && ~isempty(agent.previousStatus)
+            if this.config.warmstart && ~isempty(agent.previousStatus)
                 if ~isempty(agent.previousStatus.xPred{1})
                     assign(agent.model.x{1}, [agent.previousStatus.xPred{1}(:, 2:end),...
                         agent.previousStatus.xPred{1}(:, end)]);
@@ -329,8 +329,7 @@ classdef ParetoController < ExplicitController
         [idx,utility] = selectATN(varargin);
         
         function config = getDefaultConfig()
-            % TODO: sortieren
-            config = struct;
+            config = getDefaultConfig@Controller;
             config.drMin = 0.2;
             config.distance2AllMin = [];
             config.interactivity = false;
@@ -340,6 +339,7 @@ classdef ParetoController < ExplicitController
             config.metricFunction = 'CUP';
             config.frontDeterminationScheme = 'FPBI';
             config.printSolverStatus = true;
+            config.warmstart = false;
             
             config.getKneeRegion = false;
             config.AWDSrefinement = 0.4;
