@@ -52,11 +52,11 @@ paretoObj.status.nadir = max(front);
 filteredFront = ParetoController.paretoFilter(paretoObj, front, 1:numEP);
 front = front(filteredFront,:);
 
-filteredPIS = filteredFront - numEP;
-filteredPIS(filteredPIS <= 0) = [];
-parameters = planePointsUsed(filteredPIS,:);
-inputs = inputs(filteredPIS);
-slacks = slacks(filteredPIS);
+remainingIndices = filteredFront - numEP;
+remainingIndices(remainingIndices <= 0) = [];
+parameters = planePointsUsed(remainingIndices,:);
+inputs = inputs(remainingIndices);
+slacks = slacks(remainingIndices);
 
 elseif nargin == 5
     optOut = optimizer(preselectedStartingPoint);

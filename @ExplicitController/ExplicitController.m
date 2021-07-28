@@ -10,6 +10,8 @@ classdef ExplicitController < Controller
             
             obj@Controller(numScenarios);
             obj.type = 'explicit';
+            
+            obj.config = ExplicitController.getDefaultConfig();
         end
         
         function addConstraint(obj, arg)

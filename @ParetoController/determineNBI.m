@@ -8,11 +8,12 @@ if nargin == 4 || isempty(preselectedStartingPoint)
 n = numel(paretoObj.status.conflictingObj);
 numEP = size(extremePoints,1);
 
-front = extremePoints;
-inputs = [];
+front = [];
+inputs = {};
+slacks = struct.empty;
 startingPoints = [];
 
-normedEP = ParetoController.ParetoNormalization(extremePoints,paretoObj);
+normedEP = ParetoController.ParetoNormalization(extremePoints, paretoObj);
 N_k = normedEP(end,:)-normedEP(1:end-1,:);
 
 % number of divisions between the extreme points
@@ -47,12 +48,15 @@ for i = n+1:size(planePoints,1)
         continue
     end
     
-    pos = i-n;
-    [front(pos,:), inputs{pos,1}, slacks(pos,1)] = calculateUnnormedObjectiveValues(paretoObj, optOut, agent);
+    [newPoint, newInput, newSlack] = calculateUnnormedObjectiveValues(paretoObj, optOut, agent);
     
-    if isequal(front(pos,:),[0 0 0])
+    if isequal(newPoint,[0 0 0])
         continue
     end
+    
+    front(end + 1,:) = newPoint;
+    inputs{end + 1,1} = newInput;
+    slacks = [slacks; newSlack];
     
     startingPoints = [startingPoints; planePoints(i,:)];
 end
@@ -61,11 +65,11 @@ paretoObj.status.nadir = max(front);
 filteredFront = ParetoController.paretoFilter(paretoObj, front, 1:numEP);
 front = front(filteredFront,:);
 
-filteredPIS = filteredFront - numEP;
-filteredPIS(filteredPIS <= 0) = [];
-parameters = startingPoints(filteredPIS,:);
-inputs = inputs(filteredPIS);
-slacks = slacks(filteredPIS);
+remainingIndices = filteredFront - numEP;
+remainingIndices(remainingIndices <= 0) = [];
+parameters = startingPoints(remainingIndices,:);
+inputs = inputs(remainingIndices);
+slacks = slacks(remainingIndices);
 
 elseif nargin == 5
     optOut = optimizer(preselectedStartingPoint);
