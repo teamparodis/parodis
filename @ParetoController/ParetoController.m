@@ -263,6 +263,7 @@ classdef ParetoController < ExplicitController
             parameters = nan(size(parametersEP,1)+size(parametersFDS,1), max([size(parametersEP,2),size(parametersFDS,2)]));
             parameters(1:size(parametersEP,1),1:size(parametersEP,2)) = parametersEP;
             parameters(size(parametersEP,1)+1:end,1:size(parametersFDS,2)) = parametersFDS;
+            front = [extremePoints; front];
             this.status.front = front;
         end
         
