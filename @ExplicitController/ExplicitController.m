@@ -45,7 +45,7 @@ classdef ExplicitController < Controller
                 additionalExpression = [];
             end
             
-            if this.config.warmstart && ~isempty(agent.previousStatus)
+            if obj.config.warmstart && ~isempty(agent.previousStatus)
                 if ~isempty(agent.previousStatus.xPred{1})
                     assign(agent.model.x{1}, [agent.previousStatus.xPred{1}(:, 2:end),...
                         agent.previousStatus.xPred{1}(:, end)]);
