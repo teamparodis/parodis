@@ -20,5 +20,10 @@ if app.useSim
             app.agentObj,app.agentObj.history.pareto.paretoParameters{app.timeStep}(app.chosenIdx,:));
     end
 end
-app.agentObj.status.uPred = app.agentObj.controller.status.inputs{app.chosenIdx}; % calculate input
+if ~isempty(app.chosenIdx)
+    app.agentObj.status.uPred = app.agentObj.controller.status.inputs{app.chosenIdx}; % calculate input
+else
+    uialert(app.UIFigure,'No point was selected. Please click a point to predict the trajectory for.', 'Error');
+end
+
 end
