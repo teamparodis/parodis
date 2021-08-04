@@ -55,7 +55,7 @@ llController.addParam( "theta_ref", [1 1], 21, false );
 %% Add Cost Functions 
 
 
-llController.addCostFunction('comfort_costs', Cost_LL_TEMP_b_comfort);
+llController.addCostFunction('comfort_costs', Cost_LL_comfort);
 
 
 end

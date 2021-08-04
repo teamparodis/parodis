@@ -40,7 +40,7 @@ hlAgent.addEvalFunction( 'PeffectiveLoad', @eval_PeffectiveLoad, false);
 
 %% Lower Level Agent
 
-[llModel, llController] = createAnsatz_LL(false, T_sim, [], T_s);
+[llModel, llController] = createAnsatz_LL(T_s);
 llAgent = Agent( 'LowerLevel', llModel, llController, T_s, [repmat(21, 9, 1)]);
 
 %% Simulation instance
