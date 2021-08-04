@@ -1,11 +1,15 @@
-classdef Cost_HL_monetary_industry
+classdef Cost_HL_monetary_industry < CostFunction
     %MONETARYCOSTFUNCTION Summary of this class goes here
     %   Detailed explanation goes here
     
     methods (Static)
         function slacks = getSlacks(model, agent, params)
             slacks = struct;
+            % slack variable for extracting the positive parts of P_grid
             slacks.P_pos = sdpvar( length(agent.config.T_s), 1 );
+            
+            % slack variable for the epigraph formulation of max(0, max(Pgrid - Pgrid_max))
+            % so the maximal peak within the current prediction horizon
             slacks.peak_diff = sdpvar;
             
         end
@@ -14,17 +18,13 @@ classdef Cost_HL_monetary_industry
             P_grid = model.u(1, :)';
             
             constraints = [ 
-                (0 <= slacks.P_pos <= 1e5):'artifical bound on P_pos';
-                ( P_grid <= slacks.P_pos ):'slack variable to Pgrid into + and -';
+                (0 <= slacks.P_pos):'lower bound on P_pos';
+                ( P_grid <= slacks.P_pos ):'epigraph of P_pos = max(0, Pgrid)';
                 ( slacks.peak_diff >= P_grid - params.Pgrid_max{1} ):'epigraph of max(0, max(Pgrid - Pgrid_max))';
                 ( slacks.peak_diff >= 0 ):'epigraph of max(0, max(Pgrid - Pgrid_max))';
             ];
         end
-        
-        function [slacks, constraints] = getSlacksAndConstraints(model, agent, params)
-            
-        end
-        
+               
         function expr = buildExpression(x, u, d, params, Ns, slacks, T_s)
             expr = 0;
             for s=1:Ns
@@ -49,18 +49,18 @@ classdef Cost_HL_monetary_industry
             % selling profits
             l_sell = params.c_grid_sell * (T_s/60) *(P_grid - slacks.P_pos);
             
-            % CHP
-            c_gas = 0.045; % 4.5 cent per kWh gas
-            eta_chp = 0.892; %from data sheet
-            c_chp = 0.677; % Stromkennzahl
+            % CHP parameters
+            c_gas = 0.045;   % 4.5 cent per kWh gas
+            eta_chp = 0.892; 
+            c_chp = 0.677;   % current constant
 
             l_chp = (c_gas*(1+1/c_chp)/eta_chp)*(T_s/60) *P_chp;
 
-            %NEW: cost term for gas heating. Assumed 97% efficiency and 4.5 ct/kWh
+            %cost term for gas heating. Assumed 97% efficiency and 4.5 ct/kWh
             %gas energy
             l_Qheat = (1/0.97)*c_gas*(T_s/60) *Q_heat;
 
-            % sum all costs and scale them to the step width, as costs are per kWh
+            % sum all costs 
             l_mon = ( l_buy + l_sell  + l_chp + l_Qheat);
             
             exprSingle = l_mon + l_peakpun;
@@ -71,10 +71,10 @@ classdef Cost_HL_monetary_industry
             P_chp = u(2, :);
             Q_heat = u(3, :);
             
-            % CHP
-            c_gas = 0.045; % 4.5 cent per kWh gas
-            eta_chp = 0.892; %from data sheet
-            c_chp = 0.677; % Stromkennzahl
+            % CHP parameters
+            c_gas = 0.045;   % 4.5 cent per kWh gas
+            eta_chp = 0.892; 
+            c_chp = 0.677;   % current constant
             
             l_buy   = (T_s/60).*params.price_pred{1} .* max(0, P_grid);
             l_sell  = (T_s/60).*params.c_grid_sell{1} .* min(0, P_grid);

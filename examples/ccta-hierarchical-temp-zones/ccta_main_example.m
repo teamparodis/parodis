@@ -7,7 +7,7 @@ yalmip('clear');
 cd(fileparts(mfilename('fullpath')));
 addpath(genpath(pwd));
 
-T_sim = 7*24*60; % 7 days simulation
+T_sim = 2*24*60; % 2 days simulation
 
 % 24 hour horizon with first 8 h in 15 min steps, second 8 h in 30 min
 % steps, last 8 h in 60 min steps
@@ -18,13 +18,10 @@ T_s = [repmat(15, 1, 4*8), repmat(30, 1, 2*8), repmat(60, 1, 1*8)];
 initialPeak = 200; 
 
 %% Higher Level Agent
-
-% create_hl_ansatz(implicitPrediction, T_sim, scenario, day_begin, initialPeakGuess, weights, T_s)
 [hlModel, hlController] = createAnsatz_HL(initialPeak, T_s);
 hlAgent = Agent( 'HigherLevel', hlModel, hlController, T_s, [49 21]');
 hlAgent.callbackMeasureState = @measure_HL_buildingTemperature_from_LL;
-hlAgent.config.solver =  'gurobi'; %'sdpt3'; %'sedumi', 'sdpt3'; %'quadprog';
-%     hlAgent.config.disturbanceMeasured = 1;
+hlAgent.config.solver =  'gurobi'; % or any other qp solver like quadprog, sdpt3, sedumi
 
 % Add some evaluation functions for plotting purposes
 hlAgent.addEvalFunction( 'Pcharge', @eval_Pcharge, false);
@@ -51,6 +48,7 @@ sim.addAgents(hlAgent, llAgent);
 
 % common_figures_HL
 % common_figures_LL
-figures_all_ab
+figures_trajectories
+figures_pareto
 
 sim.runSimulation();
