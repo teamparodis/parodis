@@ -5,7 +5,7 @@ function [hlModel, hlController] = createAnsatz_HL(initialPeakGuess, T_s, weight
 %% Create Model and Controller instances
 hlModel = createModel( @model_HL, T_s );
 hlController = ParetoController();
-% hlController = SymbolicController(); uncomment to not use pareto optimization
+%hlController = SymbolicController();  % uncomment to not use pareto optimization
 
 %% Disturbance sources
 % path to CSV files
