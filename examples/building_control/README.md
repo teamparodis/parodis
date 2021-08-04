@@ -7,7 +7,7 @@ In the `agents/Data/` folder, you may find the CSV file containing the real dist
 This readme should give a brief overview over the system. For a thorough explanation of the model, the approach and the applied Pareto optimization, the user is refered to:
 
 * [Multi-objective model
-predictive control for microgrids](https://www.rmr.tu-darmstadt.de/media/rmr/eigeneseiten_rmr/tschmitt/submittedVerson_article_2020_Schmitt_et_al_Multi-Objective_Model_Predictive_Control_for_Microgrids.pdf), T. Schmitt, T. Rodemann, and J. Adamy, at - Automatisierungstechnik,
+predictive control for microgrids](https://www.honda-ri.de/pubs/pdf/4361.pdf), T. Schmitt, T. Rodemann, and J. Adamy, at - Automatisierungstechnik,
 vol. 68, no. 8, pp. 687 – 702, 2020.
 
 ## System Model
