@@ -55,13 +55,9 @@ if nargin == 4 || isempty(preselectedWeights)
     % eliminate all weakly Pareto-optimal points
     filteredFront = ParetoController.paretoFilter(paretoObj, front, 1:numEP);
     front = front(filteredFront,:);
-    
-    remainingIndices = filteredFront - numEP;
-    remainingIndices(remainingIndices <= 0) = [];
-    
-    parameters = weights(remainingIndices,:);
-    inputs     = inputs(remainingIndices);
-    slacks     = slacks(remainingIndices);
+    parameters = weights(filteredFront,:);
+    inputs     = inputs(filteredFront);
+    slacks     = slacks(filteredFront);
     
 elseif nargin == 5
     optOut = optimizer(preselectedWeights);
