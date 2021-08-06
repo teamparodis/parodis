@@ -11,7 +11,7 @@ controller.config.frontDeterminationScheme = 'ASBI';
 
 %% Disturbance sources
 % path to CSV files
-csv_dir = string( fileparts(mfilename('fullpath')) ) + filesep + "../Data/" + filesep;
+csv_dir = string( fileparts(mfilename('fullpath')) ) + filesep + "/data/" + filesep;
 
 % real disturbance from CSV
 controller.realDisturbanceSource = csv_dir + "disturbances.csv";
