@@ -855,8 +855,8 @@ classdef Simulation < handle
     
     methods (Static)
         function printHeader()
-            version = '1.0.2';
-            releaseDate = '2021-05-18';
+            version = '1.1.0';
+            releaseDate = '2021-08-06';
             message = [
                 "-------------------------------------------------------------";
                 "PARODIS - Pareto Optimal MPC for Distributed Systems";
