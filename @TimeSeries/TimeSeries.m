@@ -227,9 +227,15 @@ classdef TimeSeries < Figure
             if ~any(strcmp(obj.dependsOnAgents, callingAgent.name))
                 return
             end
+            
+            % if individual figure should not be plotted live and this is not the final plot, return 
+            if ~obj.plotLive && ~isFinalUpdate 
+                return
+            end
 
             % Turn on only for debugging!
-            show@Figure(obj);
+%             show@Figure(obj);
+
             % First clear all axes and reset temporary class properties
             for jj = 1 : size(obj.subplotAxisHandles, 2)
                 % Delete only subplots which depend on callingAgent !
@@ -250,14 +256,8 @@ classdef TimeSeries < Figure
                 end
             end
 
-%             % Delete lines which are hidden
-%             for kk = 1 : size(obj.linesToDelete, 2)
-%                 delete(obj.linesToDelete{kk});
-%             end
-%             obj.linesToDelete = {};
 
             obj.subplotAxisPredictionTimesAndWidths = cell(1, obj.nRows*obj.nColumns);
-%             obj.subplotTempXLimits = cell(1, obj.nRows*obj.nColumns);
 
             %% go through lineSeries
             for ii = 1 : size(obj.lineSeries, 2)
@@ -312,9 +312,9 @@ classdef TimeSeries < Figure
 
                 % Get indices of variable to plot
                 if isempty(variableIndex)
-                    if any(strcmp({'x', 'd', 'u'}, variableName))
-                        variableIndex = 1 : agent.model.(['n_' variableName]);
-                    else % evalValues are always scalar!
+                    if any(strcmp({'x', 'u', 'd', 'xVirt', 'uVirt', 'dVirt', 'xDiff', 'uDiff', 'dDiff'}, variableName))
+                        variableIndex = 1 : agent.model.(['n_' variableName(1)]);
+                    else % evalValues  are always scalar!
                         variableIndex = 1;
                     end
                 end
@@ -349,10 +349,10 @@ classdef TimeSeries < Figure
                             obj.subplotLinesToDelete{subplotIndex}{end+1} = hReal;
                         end
                     end
-                    % Plot status
+                    % Plot status ... 
                     [plotTimePred, plotDataPred] = obj.readInDataToPlot(agent, variableName, takeVariableIndex, scenario, 'status', 'line');
-                    % But plot only if live is enabled and there is a status to plot
-                    if obj.plotLive && ~isempty(plotDataPred)
+                    % ... but only if there is a status to plot
+                    if ~isempty(plotDataPred)
                         if isempty(hColors)
                             hPred = stairs(axesHandle, plotTimePred, plotDataPred, '--', 'HandleVisibility', 'off', optionsPred{:});
                         else
@@ -405,7 +405,7 @@ classdef TimeSeries < Figure
 
                 % if no variableIndexArray is given, take all indices
                 if isempty(variableIndexArray)
-                    if any(strcmp({'x', 'd', 'u'}, variableName))
+                    if any(strcmp({'x', 'u', 'd', 'xVirt', 'uVirt', 'dVirt', 'xDif', 'uDif', 'dDif'}, variableName))
                         variableIndexArray = 1 : agent.model.(['n_' variableName]);
                     else % evalValues are always scalar -> makes no sense for heatmaps?
                         variableIndexArray = 1;
@@ -559,29 +559,64 @@ classdef TimeSeries < Figure
         if strcmp(historyOrStatus, 'history') && isempty(agent.history.u)
             return
         end
+        
+        % adjust historyType and variableName if virtual or dif value should be plotted        
+        isDif = 0;         
+        if endsWith(variableName, 'Virt') % if virtual variable
+            
+            % if status shall be plotted: return
+            if strcmp(historyOrStatus, 'status')
+                return
+            end
+            
+            historyType = 'virtualHistory'; 
+            variableName = variableName(1:end-4); % delete 'Virt' part for easier handling
+            
+        elseif endsWith(variableName, 'Diff') % if dif variable
+            
+            % if status shall be plotted: return
+            if strcmp(historyOrStatus, 'status')
+                return
+            end
+            
+            isDif = 1; 
+            historyType = 'diffHistory'; 
+            variableName = variableName(1:end-3); % delete 'Dif' part for easier handling
 
-        % if 'pred', but there is no prediction available, return (end of
-        % simulation)
-        if strcmp(historyOrStatus, 'status')
-            variableName = [variableName 'Pred'];
+        else % regular value
+
+            historyType = 'history'; 
+            
+        end
+        
+        
+        % if status should be plotted ... 
+        if strcmp(historyOrStatus, 'status')           
+            % ... but there is no prediction available, return (end of
+            % simulation)
             if isempty(agent.status.uPred)
                 return
             end
+            % ... otherwise, adjust variableName
+            variableName = [variableName 'Pred'];            
         end
 
         if isempty(scenario) % use scenario 1 by default
             scenario = 1;
         end
 
+        
         % DEFINE TIME VECTOR
         if strcmp(historyOrStatus, 'history')
+            
             if strcmp(lineOrColorMap, 'line')
-                if strcmp(variableName, 'x') % % special treatment for x since we know one step more / append last step again
+                if strcmp(variableName, 'x') % % special treatment for x / xVirt / xDif since we know one step more / append last step again
                     plotTime = [agent.history.simulationTime, agent.history.simulationTime(end)+agent.config.T_s(1)];
                 else
                     plotTime = agent.history.simulationTime;
                 end
-            elseif strcmp(lineOrColorMap, 'colorMap') % colorMap: take only all for x, otherwise cut last out
+                
+            elseif strcmp(lineOrColorMap, 'colorMap') % colorMap: take only all for  / xVirt / xDif , otherwise cut last out
                 if strcmp(variableName, 'x') % only for x append take all
                     plotTime = agent.history.simulationTime;
                 else % for others, cut last out
@@ -589,15 +624,17 @@ classdef TimeSeries < Figure
                 end
             end
         elseif strcmp(historyOrStatus, 'status')
+            
             if strcmp(lineOrColorMap, 'line')
                 % special treatment for x since we know one step more
                 if strcmp(variableName, 'xPred')
                     plotTime = [agent.status.horizonTime(2:end), ...
                         agent.status.horizonTime(end)+agent.config.T_s(1) ...
                         agent.status.horizonTime(end)+sum(agent.config.T_s(1:min(2, end))) ];
-                else  % everythign else but x
+                else  % everything else but x
                     plotTime = [agent.status.horizonTime, agent.status.horizonTime(end)+agent.config.T_s(1)];
                 end
+                
             elseif strcmp(lineOrColorMap, 'colorMap') % colorMap: take only all for x, otherwise cut last out
                 if strcmp(variableName, 'xPred') % one step more
                     plotTime = [agent.status.horizonTime(2:end), ...
@@ -614,32 +651,34 @@ classdef TimeSeries < Figure
             if strcmp(lineOrColorMap, 'line') % only for lineSeries append last step again
                 % special treatment for x since we know one step more
                 if strcmp(variableName, 'x') % append last step again
-                    plotData = [agent.history.(variableName)(variableIndex,:), agent.history.(variableName)(variableIndex,end)];
+                    plotData = [agent.(historyType).(variableName)(variableIndex,:), agent.(historyType).(variableName)(variableIndex,end)];
                 elseif any(strcmp({'u', 'd'}, variableName)) % input or disturbance
-                    plotData = [agent.history.(variableName)(variableIndex,:), agent.history.(variableName)(variableIndex, end)];
+                    plotData = [agent.(historyType).(variableName)(variableIndex,:), agent.(historyType).(variableName)(variableIndex, end)];
                 elseif strcmp(variableName, 'eval')  % evaluation functions
-                    plotData = [agent.history.evalValues.(variableIndex)(1,:), agent.history.evalValues.(variableIndex)(end)];
+                    plotData = [agent.(historyType).evalValues.(variableIndex)(1,:), agent.(historyType).evalValues.(variableIndex)(end)];
                 elseif strcmp(variableName, 'cost')  % cost functions
-                    plotData = [agent.history.costs.(variableIndex)(1,:), agent.history.costs.(variableIndex)(end)];
+                    plotData = [agent.(historyType).costs.(variableIndex)(1,:), agent.(historyType).costs.(variableIndex)(end)];
                 else
                     error('Parodis: TimeSeries: readInDataToPlot(): variableName unknowon')
                 end
+                
             elseif strcmp(lineOrColorMap, 'colorMap') % for colorMap, no need to take last step twice
                 % special treatment for x since we know one step more
                 if strcmp(variableName, 'x')
-                    plotData = agent.history.(variableName)(variableIndex,:);
+                    plotData = agent.(historyType).(variableName)(variableIndex,:);
                 elseif any(strcmp({'u', 'd'}, variableName)) % input or disturbance
-                    plotData = [agent.history.(variableName)(variableIndex,:)];
+                    plotData = agent.(historyType).(variableName)(variableIndex,:);
                 elseif strcmp(variableName, 'eval')  % evaluation functions
-                    plotData = [agent.history.evalValues.(variableIndex)(1,:)];
+                    plotData = agent.(historyType).evalValues.(variableIndex)(1,:);
                 elseif strcmp(variableName, 'cost')  % cost functions
-                    plotData = [agent.history.costs.(variableIndex)(1,:)];
+                    plotData = agent.(historyType).costs.(variableIndex)(1,:);
                 else
                     error('Parodis: TimeSeries: readInDataToPlot(): variableName unknowon')
                 end
             end
 
         elseif strcmp(historyOrStatus, 'status')
+            
             if strcmp(lineOrColorMap, 'line') % only for lineSeries append last step again
                 % special treatment for x since we know one step more
                 if strcmp(variableName, 'xPred')
@@ -661,6 +700,7 @@ classdef TimeSeries < Figure
                 else
                     error('Parodis: TimeSeries: readInDataToPlot(): variableName unknowon')
                 end
+                
             elseif strcmp(lineOrColorMap, 'colorMap') % for colorMap, no need to take last step twice
                 % special treatment for x since we know one step more
                 if strcmp(variableName, 'xPred')
@@ -683,10 +723,45 @@ classdef TimeSeries < Figure
                     error('Parodis: TimeSeries: readInDataToPlot(): variableName unknowon')
                 end
             end
+            
+        end
+        
+        % delete temporary difHistory if created before
+        if isDif 
+            obj.deleteDifHistory(agent, variableName, variableIndex);
         end
 
         end % end readInDataToPlot()
 
+        function createDifHistory(obj, agent, variableName, variableIndex)
+        % helper function to (temporarily) create difHistory for given
+        % variable and index 
+
+        if any(strcmp({'u', 'd', 'x'}, variableName))
+            agent.difHistory.(variableName) = agent.history.(variableName) - agent.virtualHistory.(variableName);
+        elseif strcmp('eval', variableName)
+            agent.difHistory.evalValues.(variableIndex) = agent.history.evalValues.(variableIndex) - agent.virtualHistory.evalValues.(variableIndex);
+        elseif strcmp('cost', variableName)
+            agent.difHistory.costs.(variableIndex) = agent.history.costs.(variableIndex) - agent.virtualHistory.costs.(variableIndex);
+        end
+        
+            
+        end % end createDifHistory()
+        
+        function deleteDifHistory(obj, agent, variableName, variableIndex)
+        % helper function to delete (temporary) difHistory of given variable 
+        
+        if any(strcmp({'u', 'd', 'x'}, variableName))
+            agent.difHistory.(variableName) = []; 
+        elseif strcmp('eval', variableName)
+            agent.difHistory.evalValues = struct; 
+        elseif strcmp('cost', variableName)
+            agent.difHistory.costs = struct; 
+        end
+        
+            
+        end % end deleteDifHistory()
+        
         function  updateTempXLimits(obj, subplotIndex, newLimits)
         %UPDATETEMPXLIMITS helper function to update
         %obj.subplotTempXLimits{subplotIndex} with newLimits if necessary

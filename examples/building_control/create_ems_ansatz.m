@@ -5,15 +5,13 @@ function [model, controller] = create_ems_ansatz(initialPeakGuess, weights, T_ho
 %% Create Model and Controller instances
 model = createModel( @ems_model_fun, T_hor, 1 );
 
-% use controller = SymbolicController(1) if Pareto optimization is not wanted
-controller = ParetoController( 1 );
-
-% Use AWDS as front determination scheme 
-controller.config.frontDeterminationScheme = 'AWDS'; 
+%controller = SymbolicController();
+controller = ParetoController();
+controller.config.frontDeterminationScheme = 'ASBI';
 
 %% Disturbance sources
 % path to CSV files
-csv_dir = string( fileparts(mfilename('fullpath')) ) + filesep + "../Data/" + filesep;
+csv_dir = string( fileparts(mfilename('fullpath')) ) + filesep + "/data/" + filesep;
 
 % real disturbance from CSV
 controller.realDisturbanceSource = csv_dir + "disturbances.csv";

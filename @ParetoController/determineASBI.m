@@ -19,7 +19,7 @@ function [inputs, slacks, front, parameters] = determineASBI(paretoObj, agent, o
 
 if nargin == 4 || isempty(preselectedParameters)
     paretoObj.paretoCurrentStep = 0;
-    front = extremePoints;
+    front = [];
     paretoObj.evaluatedPoints = extremePoints;
     numEP = size(extremePoints,1);
     
@@ -30,11 +30,11 @@ if nargin == 4 || isempty(preselectedParameters)
     end
     
     % get the number of unique Pareto-optimal points
-    numPoints = size(unique(front,'rows'),1);
+%     numPoints = size(unique(extremePoints,'rows'),1);
     
     % if the number of points is less than the number of conflicting objectives the ASBI
     % cannot be applied
-    if numPoints < numel(paretoObj.status.conflictingObj)
+    if numEP < numel(paretoObj.status.conflictingObj)
         warning("Not enough points found for AWDS! :(")
         inputs = [];
         paretoParameters = [];
@@ -43,14 +43,14 @@ if nargin == 4 || isempty(preselectedParameters)
     end
     
     % get all possible recombinations, if more than n EP candidates are given
-    recombinations = nchoosek( 1:(numPoints), numel(paretoObj.status.conflictingObj) );
+    recombinations = nchoosek( 1:(numEP), numel(paretoObj.status.conflictingObj) );
     inputs = [];
     paretoParameters = [];
     slacks = [];
     
     % do ASBI for all combinations of candidates
     for ii = 1:size(recombinations,1)
-        [frontTemp, inputsTemp, slacksTemp, evaluatedWeightsTemp] = evaluateParetoFront(paretoObj, agent, optimizer, front(recombinations(ii,:),:), Inf);
+        [frontTemp, inputsTemp, slacksTemp, evaluatedWeightsTemp] = evaluateParetoFront(paretoObj, agent, optimizer, extremePoints(recombinations(ii,:),:), Inf);
         front = [front; frontTemp];
         inputs = [inputs; inputsTemp];
         paretoParameters = [paretoParameters; evaluatedWeightsTemp];
@@ -60,12 +60,9 @@ if nargin == 4 || isempty(preselectedParameters)
     % eliminate all weakly Pareto-optimal points
     filteredFront = ParetoController.paretoFilter(paretoObj, front, 1:numEP);
     front = front(filteredFront,:);
-    
-    filteredPIS = filteredFront - numEP;
-    filteredPIS(filteredPIS <= 0) = [];
-    parameters = paretoParameters(filteredPIS,:);
-    inputs = inputs(filteredPIS);
-    slacks = slacks(filteredPIS);
+    parameters = paretoParameters(filteredFront,:);
+    inputs     = inputs(filteredFront);
+    slacks     = slacks(filteredFront);
     
 elseif nargin == 5
     optOut = optimizer(preselectedParameters);

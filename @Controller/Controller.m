@@ -77,6 +77,10 @@ classdef Controller < handle
                 defaultWeight = 1;
             end
             
+            if isfield(obj.costFunctionIndexes, name)
+                warning("PARODIS Controller:addCostFunction A cost function with name '%s' was already added", name);
+            end
+            
             obj.costFunctions{end+1} = costFunctionInstance;
             obj.defaultWeights(end+1) = defaultWeight;
             obj.costFunctionIndexes.(name) = length(obj.costFunctions);
@@ -84,6 +88,10 @@ classdef Controller < handle
         
         % creates sdp variables for parameters and store config for parameter
         function paramSymbol = addParam(obj, name, dimensions, source, scenarioDependent)
+            if nargin < 5
+                scenarioDependent = true;
+            end
+            
             obj.paramSyms.(name) = cell(obj.numScenarios, 1);
             obj.paramConfig.(name) = {dimensions, source, scenarioDependent};
             
@@ -95,7 +103,7 @@ classdef Controller < handle
                     continue;
                 end
                 
-                obj.paramSyms.(name){s} = sdpvar(dimensions(1), dimensions(2));
+                obj.paramSyms.(name){s} = sdpvar(dimensions(1), dimensions(2), 'full');
             end
             
             paramSymbol = obj.paramSyms.(name);
@@ -124,7 +132,7 @@ classdef Controller < handle
             if isa(arg, 'function_handle')
                 obj.implicitConstraints = [obj.implicitConstraints; {arg}];
             % otherwise add immediately
-            elseif isa(arg, 'constraint')
+            elseif isa(arg, 'constraint') || isa(arg, 'lmi')
                  obj.constraints = [obj.constraints; arg];
             end
         end
@@ -189,11 +197,12 @@ classdef Controller < handle
             obj.yalmipOptions = yalmipOptions;
         end
         
-        function [uPred, slackValues, code] = getInput(obj, x0, agent, additionalConstraints, additionalExpression)
+        function [uPred, slackValues, code] = getInput(obj, x0, uPrev, agent, additionalConstraints, additionalExpression)
             % [uPred, slackValues, code] = getInput Retrieves an input trajectory and the realised values of the slack variables
             %                               as well as the yalmip problem code
             % 
             %   x0                      assumed initial state
+            %   uPrev                   previously applied input u, i.e. u(k-1)
             %   dPred                   scenarios of predictions for disturbances over horizon
             %   paramValues             values for the parameters of the optimization problem            
             %   agent                   calling agent

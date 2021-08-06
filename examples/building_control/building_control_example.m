@@ -9,7 +9,7 @@ yalmip('clear');
 addpath( genpath( [pwd '/agents/'] ) );
 
 % Simulation time in minutes: Something between 0 and 2 days
-T_sim = 2*24*60;
+T_sim = 1*24*60;
 
 % 24 hour horizon with first 8 h in 15 min steps, second 8 h in 30 min
 % steps, last 8 h in 60 min steps
@@ -19,7 +19,7 @@ T_hor = [repmat(15, 1, 4*8), repmat(30, 1, 2*8), repmat(60, 1, 1*8)];
 initialPeak = 100;
 
 % weighting for l_mon and l_comf if Pareto should *not* be used
-weights = [0.2, 0.8];
+weights = [0.5, 0.5];
 
 %% Creating the agent
 
@@ -39,6 +39,7 @@ emsAgent.addEvalFunction( 'Pcharge', @eval_Pcharge, false);
 emsAgent.addEvalFunction( 'Pcharge_min', eval_const(-32.9));
 emsAgent.addEvalFunction( 'Pcharge_max', eval_const( 32.9));
 emsAgent.addEvalFunction( 'electricity_costs', @eval_electricity_costs);
+emsAgent.addEvalFunction( 'monetary_costs', @eval_mon_costs);
 emsAgent.addEvalFunction( 'E_min', eval_const(14.7));
 emsAgent.addEvalFunction( 'E_max', eval_const(83.3));
 
@@ -46,6 +47,8 @@ emsAgent.addEvalFunction( 'E_max', eval_const(83.3));
 sim = Simulation( 'building_control_example', T_sim );
 sim.config.livePlot = false; % to supress live plotting
 sim.config.doCopyCallingScript = false; % Otherwise, this script is copied to results-directory
+sim.config.storePlots = false;
+sim.config.storeResults = false;
 
 sim.addAgent(emsAgent);
 

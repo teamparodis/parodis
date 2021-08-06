@@ -7,6 +7,10 @@ function model = createModel(model_fun, T_s, numScenarios, implicitPrediction, c
 %   implicitPrediction  if true, state predictions are implicit and defined by constraints x(k+1) == f(x(k), u(k), d(k))
 %                       otherwise x(k+1) is an explicit expression of u(k) and d(k)
 
+    if nargin < 3
+        numScenarios = 1;
+    end
+
     if nargin < 4
         implicitPrediction = false;
     end
@@ -20,7 +24,7 @@ function model = createModel(model_fun, T_s, numScenarios, implicitPrediction, c
     
     % preset sdpvars for all expressions
     model.x0 = sdpvar(n_x, 1);
-    model.u = sdpvar(n_u, length(T_s));
+    model.u = sdpvar(n_u, length(T_s), 'full');
     model.n_x = n_x;
     model.n_u = n_u;
     model.n_d = n_d;
@@ -57,8 +61,8 @@ function model = createModel(model_fun, T_s, numScenarios, implicitPrediction, c
 
     for s=1:numScenarios
         % preset [x(0|k) ... x(n|k)] as sdpvar, but keep x(0|k) = x0
-        model.x{s} = [model.x0 sdpvar(n_x, length(T_s))];
-        model.d{s} = sdpvar(n_d, length(T_s));
+        model.x{s} = [model.x0 sdpvar(n_x, length(T_s), 'full')];
+        model.d{s} = sdpvar(n_d, length(T_s), 'full');
     end
     
     for k=1:N_pred

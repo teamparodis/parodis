@@ -14,6 +14,10 @@ classdef ParetoController < ExplicitController
     
     methods
         function obj = ParetoController( numScenarios )
+            if nargin < 1
+                numScenarios = 1;
+            end
+            
             obj@ExplicitController(numScenarios);
             obj.type = 'pareto';
             obj.paretoCurrentStep = [];
@@ -62,14 +66,19 @@ classdef ParetoController < ExplicitController
             % output constists of the input u und the slack variables.
             
             n = numel(paretoObj.status.conflictingObj);
-            
-            u = optimizerOutput{1};
-            
             slackVariableNames = fieldnames(paretoObj.slackVariables);
-            slack = optimizerOutput(2:length(slackVariableNames)+1);
+            
+            % optimizerOutput is only a cell, if more than one variable is defined as output in the optimizer
+            % i.e., when additional slack variables are defined
+            if iscell(optimizerOutput)
+                u = optimizerOutput{1};
+
+                slack = optimizerOutput(2:length(slackVariableNames)+1);
+            else
+                u = optimizerOutput;
+            end
             
             slackValues = struct;
-            slackVariableNames = fieldnames(paretoObj.slackVariables);
             for idx = 1:length(slackVariableNames)
                 name = slackVariableNames{idx};
                 slackValues.(name) = slack{idx};
@@ -83,15 +92,17 @@ classdef ParetoController < ExplicitController
             objectiveValues = zeros(1,n);
             
             for obj = 1:n
-                objectiveValues(1,obj) = paretoObj.costFunctions{paretoObj.status.conflictingObj(obj)}.buildExpression(x,u,d,params,Ns,slackValues,agent.config.T_s);
+                idx = paretoObj.status.conflictingObj(obj);
+                objectiveValues(1,obj) = paretoObj.costFunctions{idx}.buildExpression(x, u, d, params, Ns, slackValues, agent.config.T_s);
             end
         end
         
-        function [uPred, slackValues, code, paretoStatus] = getInput(this, x0, agent, predefinedParetoParameters, additionalConstraints, additionalExpression)
+        function [uPred, slackValues, code, paretoStatus] = getInput(this, x0, uPrev, agent, predefinedParetoParameters, additionalConstraints, additionalExpression)
             % [uPred, slackValues, code, parameters] = getInput Retrieves an input trajectory and the realised values of the slack variables
             %                               as well as the yalmip problem code
             %
             %   x0                      assumed initial state
+            %   uPrev                   previously applied input u, i.e. u(k-1)
             %   dPred                   scenarios of predictions for disturbances over horizon
             %   paramValues             values for the parameters of the optimization problem
             %   agent                   calling agent
@@ -101,19 +112,30 @@ classdef ParetoController < ExplicitController
             
             code = 0;
             
-            if nargin < 4
+            if nargin < 5
                 predefinedParetoParameters = [];
             end
             
-            if nargin < 5
+            if nargin < 6
                 additionalConstraints = [];
             end
             
-            if nargin < 6
+            if nargin < 7
                 additionalExpression = [];
             end
             
-            [optimizeConstraints, costExpressions] = this.prepareProblem(x0, agent, additionalConstraints);
+            if this.config.warmstart && ~isempty(agent.previousStatus)
+                if ~isempty(agent.previousStatus.xPred{1})
+                    assign(agent.model.x{1}, [agent.previousStatus.xPred{1}(:, 2:end),...
+                        agent.previousStatus.xPred{1}(:, end)]);
+                end
+                if ~isempty(agent.previousStatus.uPred)
+                    assign(agent.model.u, [agent.previousStatus.uPred(:, 2:end),...
+                        agent.previousStatus.uPred(:, end)]);
+                end
+            end
+            
+            [optimizeConstraints, costExpressions] = this.prepareProblem(x0, uPrev, agent, additionalConstraints);
             
             if this.config.checkRedundancy
                 this.redundancyCheck(agent, optimizeConstraints, costExpressions);
@@ -252,6 +274,7 @@ classdef ParetoController < ExplicitController
             parameters = nan(size(parametersEP,1)+size(parametersFDS,1), max([size(parametersEP,2),size(parametersFDS,2)]));
             parameters(1:size(parametersEP,1),1:size(parametersEP,2)) = parametersEP;
             parameters(size(parametersEP,1)+1:end,1:size(parametersFDS,2)) = parametersFDS;
+            front = [extremePoints; front];
             this.status.front = front;
         end
         
@@ -306,8 +329,7 @@ classdef ParetoController < ExplicitController
         [idx,utility] = selectATN(varargin);
         
         function config = getDefaultConfig()
-            % TODO: sortieren
-            config = struct;
+            config = getDefaultConfig@Controller;
             config.drMin = 0.2;
             config.distance2AllMin = [];
             config.interactivity = false;
@@ -316,6 +338,8 @@ classdef ParetoController < ExplicitController
             config.extremePointFunction = 'MWAN';
             config.metricFunction = 'CUP';
             config.frontDeterminationScheme = 'FPBI';
+            config.printSolverStatus = true;
+            config.warmstart = false;
             
             config.getKneeRegion = false;
             config.AWDSrefinement = 0.4;

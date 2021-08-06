@@ -6,7 +6,7 @@ if nargin == 4 || isempty(preselectedStartingPoint)
 numEP = size(extremePoints,1);
 
 inputs = [];
-startingPoints = [];
+planePointsUsed = [];
 
 normedEP = ParetoController.ParetoNormalization(extremePoints, paretoObj);
 
@@ -17,6 +17,7 @@ paretoObj.paretoMaxStep = size(planePoints,1)-1;
 
 front = [];
 inputs = {};
+slacks = struct.empty;
 
 for iParetoStep = 2:size(planePoints,1)
     paretoObj.paretoCurrentStep = iParetoStep - 1;
@@ -25,28 +26,34 @@ for iParetoStep = 2:size(planePoints,1)
     [optOut, feasibilityCode] = optimizer(planePoints(iParetoStep,:));
     
     if feasibilityCode ~= 0
+        msg = "Yalmip error in Simulation step " + agent.sim.status.k + " in Pareto step " + paretoObj.paretoCurrentStep + ": " + (feasibilityCode);
+        if paretoObj.config.printSolverStatus
+            agent.log(msg); %possible: yalmiperror
+        else
+            warning(msg);
+        end
         continue
     end
     
-    [front(iParetoStep,:), inputs{iParetoStep,1}, slacks(iParetoStep,1)] = calculateUnnormedObjectiveValues(...
+    [newPoint, newInput, newSlack] = calculateUnnormedObjectiveValues(...
         paretoObj, optOut, agent);
     
-    if isequal(front(end,:),[0 0 0])
+    if isequal(newPoint,[0 0 0])
         continue
     end
     
-    startingPoints = [startingPoints; planePoints(iParetoStep,:)];
+    front(end + 1,:) = newPoint;
+    inputs{end + 1,1} = newInput;
+    slacks = [slacks; newSlack];
+    planePointsUsed = [planePointsUsed; planePoints(iParetoStep,:)];
 end
 
 paretoObj.status.nadir = max(front);
 filteredFront = ParetoController.paretoFilter(paretoObj, front, 1:numEP);
 front = front(filteredFront,:);
-
-filteredPIS = filteredFront - numEP;
-filteredPIS(filteredPIS <= 0) = [];
-parameters = startingPoints(filteredPIS,:);
-inputs = inputs(filteredPIS);
-slacks = slacks(filteredPIS);
+parameters = planePointsUsed(filteredFront,:);
+inputs = inputs(filteredFront);
+slacks = slacks(filteredFront);
 
 elseif nargin == 5
     optOut = optimizer(preselectedStartingPoint);
