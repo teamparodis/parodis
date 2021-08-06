@@ -5,7 +5,7 @@ classdef Cost_LL_comfort < CostFunction
 
         function [slacks] = getSlacks(model, agent, params) 
             slacks = struct;
-            slacks.theta_aux = sdpvar(size(model.x{1},1), size(model.x{1},2) ) ;
+            slacks.theta_aux = sdpvar(size(model.x{1},1), size(model.x{1},2), 'full' ) ;
         end
         
         function [constraints] = getConstraints(model, agent, slacks, params)
