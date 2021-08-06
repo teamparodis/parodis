@@ -103,7 +103,7 @@ classdef Controller < handle
                     continue;
                 end
                 
-                obj.paramSyms.(name){s} = sdpvar(dimensions(1), dimensions(2));
+                obj.paramSyms.(name){s} = sdpvar(dimensions(1), dimensions(2), 'full');
             end
             
             paramSymbol = obj.paramSyms.(name);
