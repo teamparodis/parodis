@@ -13,12 +13,6 @@ function optimizerWS = prepareWS(paretoObj, optimizeConstraints, costExpressions
 %       additionalSymbols: additional symbols that are used as additional inputs for the optimizer
 %       additionalCostExpression: additional cost expressions that are added to the weighted sum
 
-if agent.config.debugMode
-    options = {'solver', agent.config.solver, 'cachesolvers', 1, 'debug', 1, 'verbose', 2,'convertconvexquad', 1,'showprogress', 1};
-else
-    options = {'solver', agent.config.solver, 'cachesolvers', 1, 'debug', 0, 'verbose', 0,'convertconvexquad', 1};
-end
-
 doOwnNormalization = true;
 
 if nargin < 8
@@ -36,9 +30,6 @@ end
 if nargin < 5
     doOwnNormalization = false;
 end
-
-options = [options, agent.config.solverOptions];
-yalmipOptions = sdpsettings( options{:} );
 
 % preset weights for independant and ignored Objectives
 costExpressionWeights = paretoObj.weightSyms';
@@ -68,7 +59,7 @@ for idx=1:length(slackVariableNames)
 end
 
 % build optimizer
-optimizerWS = optimizer(optimizeConstraints, WSCostExpression, yalmipOptions,...
+optimizerWS = optimizer(optimizeConstraints, WSCostExpression, agent.controller.yalmipOptions,...
     WSSymbols, output);
 
 end

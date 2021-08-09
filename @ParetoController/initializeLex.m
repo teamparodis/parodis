@@ -51,14 +51,19 @@ for objective = 1:n
         end
         
         costFcnValues = value([costExpressions{paretoObj.status.conflictingObj}]);
-        if isequal(costFcnValues, lastCostFcnValues) % if values stop changing end lexicographic order
+        if sum(abs(costFcnValues - lastCostFcnValues)) <= 1e-10 % if values stop changing end lexicographic order
             break;
         end
         
         lastCostFcnValues = costFcnValues;
         % additional constraints on calculated objectives
-        additionalConstraints = [additionalConstraints; costExpressions{order}/...
-            costFcnValues(order) <= 1 + sl(order)];
+        if costFcnValues(order) ~= 0
+            additionalConstraints = [additionalConstraints; costExpressions{order}/...
+                costFcnValues(order) <= 1 + sl(order)];
+        else
+            additionalConstraints = [additionalConstraints; costExpressions{order}...
+             <= sl(order)];
+        end
     end
     
     extremePoints(objective,:) = costFcnValues;
@@ -75,6 +80,12 @@ end
 
 paretoObj.status.utopia = min(extremePoints);
 paretoObj.status.nadir = max(extremePoints);
+
+filteredFront = ParetoController.paretoFilter(paretoObj, extremePoints, []);
+extremePoints = extremePoints(filteredFront,:);
+parametersEP  = parametersEP(filteredFront,:);
+inputsEP      = inputsEP(filteredFront);
+slacksEP      = slacksEP(filteredFront);
 
 end
 

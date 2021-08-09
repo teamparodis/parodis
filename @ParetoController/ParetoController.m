@@ -165,30 +165,40 @@ classdef ParetoController < ExplicitController
                 % clear fronts/parameters determined in previous timestep
                 this.clear();
                 
-                [inputs, slacks, front, paretoParameters] = this.determineFront(                    ...
-                    agent, optimizer, extremePoints, inputsEP, slacksEP, parametersEP,              ...
-                    predefinedParetoParameters                                                      ...
-                    );
-                
-                if isempty(predefinedParetoParameters)
-                    if this.config.interactivity % call the interactivity tool and wait for selection
-                        this.status.inputs = inputs;
-                        agent.simulation.interactivity.currentAgent = agent;
-                        agent.simulation.interactivity.app.showScreen;
-                        waitfor(agent.simulation.interactivity.app,'waitingFlag');
-                        idx = this.interactivityIdx;
-                        uPred = inputs{idx,1};
-                        slackValues = slacks(idx,:);
-                        chosenParameters = paretoParameters(idx,:);
-                        chosenSolution = front(idx,:);
+                if size(extremePoints,1) > 1
+                    [inputs, slacks, front, paretoParameters] = this.determineFront(                    ...
+                        agent, optimizer, extremePoints, inputsEP, slacksEP, parametersEP,              ...
+                        predefinedParetoParameters                                                      ...
+                        );
+                    
+                    if isempty(predefinedParetoParameters)
+                        if this.config.interactivity % call the interactivity tool and wait for selection
+                            this.status.inputs = inputs;
+                            agent.simulation.interactivity.currentAgent = agent;
+                            agent.simulation.interactivity.app.showScreen;
+                            waitfor(agent.simulation.interactivity.app,'waitingFlag');
+                            idx = this.interactivityIdx;
+                            uPred = inputs{idx,1};
+                            slackValues = slacks(idx,:);
+                            chosenParameters = paretoParameters(idx,:);
+                            chosenSolution = front(idx,:);
+                        else
+                            [uPred, slackValues, chosenParameters, chosenSolution] = this.chooseSolution( agent, inputs, slacks, front, paretoParameters );
+                        end
                     else
-                        [uPred, slackValues, chosenParameters, chosenSolution] = this.chooseSolution( agent, inputs, slacks, front, paretoParameters );
+                        uPred = inputs{end};
+                        slackValues = slacks{end};
+                        chosenParameters = predefinedParetoParameters;
+                        chosenSolution = front(end,:);
                     end
                 else
-                    uPred = inputs{end};
-                    slackValues = slacks{end};
-                    chosenParameters = predefinedParetoParameters;
-                    chosenSolution = front(end,:);
+                     agent.log("Only one solution found. This one will be selected.")
+                     uPred = inputsEP{1};
+                     slackValues = slacksEP(1);
+                     chosenParameters = parametersEP(1,:);
+                     chosenSolution = extremePoints(1,:);
+                     front = extremePoints(1,:);
+                     paretoParameters = extremePoints(1,:);
                 end
             end
             
