@@ -5,15 +5,6 @@ function [extremePoints, inputsEP, slacksEP, weightsEP] = initializeLex(paretoOb
 
 persistent sl
 
-if agent.config.debugMode
-    options = {'solver', agent.config.solver, 'cachesolvers', 1, 'debug', 1, 'verbose', 2,'convertconvexquad', 1,'showprogress', 1};
-else
-    options = {'solver', agent.config.solver, 'cachesolvers', 1, 'debug', 0, 'verbose', 0,'convertconvexquad', 1};
-end
-
-options = [options, agent.config.solverOptions];
-yalmipOptions = sdpsettings( options{:} );
-
 dim = numel(costExpressions);
 n = numel(paretoObj.status.conflictingObj);
 extremePoints = zeros(n); % array with extreme points
@@ -44,14 +35,14 @@ for objective = 1:n
     for order = costFcnOrder(objective,:)
         
         fullCostExpression = costExpressions{order} + sl * ones(dim, 1) * 1e5;
-        diagnostics = optimize([optimizeConstraints; additionalConstraints], fullCostExpression, yalmipOptions);
+        diagnostics = optimize([optimizeConstraints; additionalConstraints], fullCostExpression,  agent.controller.yalmipOptions);
         
         if diagnostics.problem ~= 0
             error("YALMIP error " + diagnostics.problem + " detected: " + yalmiperror(diagnostics.problem));
         end
         
         costFcnValues = value([costExpressions{paretoObj.status.conflictingObj}]);
-        if sum(abs(costFcnValues - lastCostFcnValues)) <= 1e-10 % if values stop changing end lexicographic order
+        if ~isempty(lastCostFcnValues) && sum(abs(costFcnValues - lastCostFcnValues)) <= 1e-10 % if values stop changing end lexicographic order
             break;
         end
         
@@ -78,14 +69,21 @@ for objective = 1:n
     slacksEP(objective,1) = fillSlacks;
 end
 
+% check for double EP
+[extremePoints, uniqueIdc] = uniquetol(extremePoints, 1e-10, 'ByRows', 1);
+weightsEP     = weightsEP(uniqueIdc,:);
+inputsEP      = inputsEP(uniqueIdc);
+slacksEP      = slacksEP(uniqueIdc);
+
 paretoObj.status.utopia = min(extremePoints);
 paretoObj.status.nadir = max(extremePoints);
 
-filteredFront = ParetoController.paretoFilter(paretoObj, extremePoints, []);
-extremePoints = extremePoints(filteredFront,:);
-parametersEP  = parametersEP(filteredFront,:);
-inputsEP      = inputsEP(filteredFront);
-slacksEP      = slacksEP(filteredFront);
-
+if size(extremePoints,1) > 1
+    filteredFront = ParetoController.paretoFilter(paretoObj, extremePoints, []);
+    extremePoints = extremePoints(filteredFront,:);
+    weightsEP     = weightsEP(filteredFront,:);
+    inputsEP      = inputsEP(filteredFront);
+    slacksEP      = slacksEP(filteredFront);
+end
 end
 
