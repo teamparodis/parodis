@@ -178,7 +178,7 @@ classdef ExplicitController < Controller
                 
                 % don't build expression if weight is 0 to save time
                 % and avoid numerical problems
-                if obj.defaultWeights(i) == 0
+                if obj.skipCostFunction(i)
                     costExpressions{i} = 0;
                     continue;
                 end
@@ -196,6 +196,10 @@ classdef ExplicitController < Controller
             if ~isempty(additionalConstraints)
                 optimizeConstraints = [optimizeConstraints; additionalConstraints];
             end
+        end
+        
+        function doSkip = skipCostFunction(obj,idx)
+            doSkip = obj.defaultWeights(idx) == 0;
         end
         
         function expr = prepareExpression(obj, costFunction, model, agent)

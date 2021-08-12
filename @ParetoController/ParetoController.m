@@ -211,6 +211,10 @@ classdef ParetoController < ExplicitController
             paretoStatus.utopia = this.status.utopia;
         end
         
+        function doSkip = skipCostFunction(obj,~)
+            doSkip = false;
+        end
+        
         function optimizer = prepareOptimizer(this, optimizeConstraints, costExpressions, agent, extremePoints, method)
             % Select the optimizer function to based on the ParetoController config. If the stored
             % string is 'auto' the optimizer corresponding to the front determination scheme is
