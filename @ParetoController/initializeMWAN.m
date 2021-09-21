@@ -40,4 +40,10 @@ end
 paretoObj.status.nadir = max(extremePoints);
 parametersEP = weights;
 
+filteredFront = ParetoController.paretoFilter(paretoObj, extremePoints, []);
+extremePoints = extremePoints(filteredFront,:);
+parametersEP  = parametersEP(filteredFront,:);
+inputsEP      = inputsEP(filteredFront);
+slacksEP      = slacksEP(filteredFront);
+
 end

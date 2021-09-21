@@ -3,12 +3,6 @@ function optimizerFPBI = prepareFPBI(paretoObj, optimizeConstraints, costExpress
 %   Detailed explanation goes here
 persistent l f vectorStartingPoint
 
-if agent.config.debugMode
-    options = {'solver', agent.config.solver, 'cachesolvers', 1, 'debug', 1, 'verbose', 2,'convertconvexquad', 1,'showprogress', 1};
-else
-    options = {'solver', agent.config.solver, 'cachesolvers', 1, 'debug', 0, 'verbose', 0,'convertconvexquad', 1};
-end
-
 normedEP = ParetoController.ParetoNormalization(extremePoints, paretoObj);
 
 % if the default config for the focus point is used it has to be translated to a vector
@@ -26,8 +20,6 @@ focusVector = focusPoint(paretoObj.status.conflictingObj) - midPoint;
 focusVector = focusVector/norm(focusVector);
 paretoObj.status.focusVector = focusVector;
 
-options = [options, agent.config.solverOptions];
-yalmipOptions = sdpsettings( options{:} );
 output = {agent.model.u};
 slackVariableNames = fieldnames(paretoObj.slackVariables);
 
@@ -54,7 +46,7 @@ FPBIConstraints = (vectorStartingPoint(conflictingObj) + l*focusVector >= f(conf
 FPBISymbols = [vectorStartingPoint(conflictingObj)];
 
 if isempty(paretoObj.status.redundantObj) && isempty(paretoObj.status.independantObj) && isempty(paretoObj.config.ignoreInPareto)
-    optimizerFPBI = optimizer([optimizeConstraints; FPBIConstraints], -l, yalmipOptions, FPBISymbols, output);
+    optimizerFPBI = optimizer([optimizeConstraints; FPBIConstraints], -l, agent.controller.yalmipOptions, FPBISymbols, output);
 else
     addedObj = 0;
     if ~isempty(paretoObj.status.independantObj)
@@ -70,7 +62,7 @@ else
     end
     
     optimizerFPBI = optimizer([optimizeConstraints; FPBIConstraints], -l + addedObj, ...
-        yalmipOptions, FPBISymbols, output);
+        agent.controller.yalmipOptions, FPBISymbols, output);
 end
 
 end
