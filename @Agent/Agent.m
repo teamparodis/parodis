@@ -166,6 +166,8 @@ classdef Agent < handle
             
             this.updateRng(); 
             this.measureState( externalData );
+            
+            this.status.horizonTime = this.history.simulationTime(end) + cumsum([0 this.config.T_s(1:end-1)]);
             this.status.dPred = this.getDisturbance( externalData );
             this.setParameterValues();
             
