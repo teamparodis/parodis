@@ -371,7 +371,7 @@ classdef Agent < handle
                 scenarioDependent = this.config.evalFuns.(evalName){2};
                 if predict
                     if scenarioDependent
-                        this.status.evalPred.(evalName) = cell(this.controller.numScenarios, 1);
+                        evalValues.(evalName) = cell(this.controller.numScenarios, 1);
 
                         for s=1:this.controller.numScenarios
                             data = evalFun(this, this.simulation, true, s);
