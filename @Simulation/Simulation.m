@@ -64,15 +64,21 @@ classdef Simulation < handle
     end
     
     methods
-        function obj = Simulation(name, T_sim, addTimestamp)
+        function obj = Simulation(name, T_sim, addTimestamp, resultsDirectory)
             % Simulation    Creates a simulation instance
-            %   name            Name of the simulation and for the result directory
-            %   T_sim           Simulation time in simulation timescale
-            %   addTimestamp    (optional) whether to add timestamp to the
-            %                   result directory, default false
+            %   name                Name of the simulation and for the result directory
+            %   T_sim               Simulation time in simulation timescale
+            %   addTimestamp        (optional) whether to add timestamp to the
+            %                       simulation results directory, default false
+            %   resultsDirectory    The path where the result directory should stored
+            %                       default is './Results'
             
             if nargin < 3
                 addTimestamp = false;
+            end
+            
+            if nargin < 4
+                resultsDirectory = [pwd filesep 'Results'];
             end
             
             obj.T_sim = T_sim;
@@ -117,7 +123,7 @@ classdef Simulation < handle
                 suffix = '';
             end
             
-            obj.resultDirectory = string([pwd filesep 'Results' filesep char(name) suffix filesep ]);
+            obj.resultDirectory = string([resultsDirectory filesep char(name) suffix filesep ]);
             
             Simulation.printHeader();
         end
