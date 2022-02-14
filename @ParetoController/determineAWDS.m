@@ -102,7 +102,12 @@ end
 
 % skip the solution if the problem was infeasible
 if feasibilityCode ~= 0
-    warning("Yalmip error: " + yalmiperror(feasibilityCode))
+    msg = "Yalmip error in Simulation step " + agent.sim.status.k + " in Pareto step " + paretoObj.paretoCurrentStep + ": " + (feasibilityCode);
+    if paretoObj.config.printSolverStatus
+        agent.log(msg); %possible: yalmiperror
+    else
+        warning(msg);
+    end
     points = [];
     weights = [];
     inputs = [];

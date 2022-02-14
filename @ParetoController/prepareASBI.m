@@ -2,14 +2,6 @@ function optimizerASBI = prepareASBI(paretoObj, optimizeConstraints, costExpress
 % Generate the optimizer used in the ASBI method
 persistent l f vectorStartingPoint searchVector normalVector
 
-if agent.config.debugMode
-    options = {'solver', agent.config.solver, 'cachesolvers', 1, 'debug', 1, 'verbose', 2,'convertconvexquad', 1,'showprogress', 1};
-else
-    options = {'solver', agent.config.solver, 'cachesolvers', 1, 'debug', 0, 'verbose', 0,'convertconvexquad', 1};
-end
-
-options = [options, agent.config.solverOptions];
-yalmipOptions = sdpsettings( options{:} );
 output = {agent.model.u};
 slackVariableNames = fieldnames(paretoObj.slackVariables);
 
@@ -51,7 +43,7 @@ noRedundancy = isempty(paretoObj.status.redundantObj) && isempty(paretoObj.statu
 
 if noRedundancy && isempty(paretoObj.config.ignoreInPareto)  
     optimizerASBI = optimizer([optimizeConstraints; ASBIConstraints], searchVector *...
-        ones(nCostFunction,1), yalmipOptions, ASBISymbols, output);
+        ones(nCostFunction,1), agent.controller.yalmipOptions, ASBISymbols, output);
     
 else
     addedObj = 0;
@@ -68,7 +60,7 @@ else
     end
     
     optimizerASBI = optimizer([optimizeConstraints; ASBIConstraints], searchVector*...
-        ones(nCostFunction,1) + addedObj, yalmipOptions, ASBISymbols, output);
+        ones(nCostFunction,1) + addedObj, agent.controller.yalmipOptions, ASBISymbols, output);
 end
 
 end

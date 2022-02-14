@@ -2,17 +2,9 @@ function optimizerNBI = prepareNBI(paretoObj, optimizeConstraints, costExpressio
 %Generate the optimizer used in the standard NBI method
 persistent l f vectorStartingPoint
 
-if agent.config.debugMode
-    options = {'solver', agent.config.solver, 'cachesolvers', 1, 'debug', 1, 'verbose', 2,'convertconvexquad', 1,'showprogress', 1};
-else
-    options = {'solver', agent.config.solver, 'cachesolvers', 1, 'debug', 0, 'verbose', 0,'convertconvexquad', 1};
-end
-
 normedEP = ParetoController.ParetoNormalization(extremePoints, paretoObj);
 normalVector = -(normedEP(:, paretoObj.status.conflictingObj)\ones(numel(paretoObj.status.conflictingObj),1))';
 
-options = [options, agent.config.solverOptions];
-yalmipOptions = sdpsettings( options{:} );
 output = {agent.model.u};
 slackVariableNames = fieldnames(paretoObj.slackVariables);
 
@@ -38,7 +30,7 @@ NBIConstraints = (vectorStartingPoint(conflictingObj) + l*normalVector >= f(conf
 NBISymbols = [vectorStartingPoint(conflictingObj)];
 
 if isempty(paretoObj.status.redundantObj) && isempty(paretoObj.status.independantObj) && isempty(paretoObj.config.ignoreInPareto)
-    optimizerNBI = optimizer([optimizeConstraints; NBIConstraints], -l, yalmipOptions, NBISymbols, output);
+    optimizerNBI = optimizer([optimizeConstraints; NBIConstraints], -l, agent.controller.yalmipOptions, NBISymbols, output);
 else
     addedObj = 0;
     if ~isempty(paretoObj.status.independantObj)
@@ -54,7 +46,7 @@ else
     end
     
     optimizerNBI = optimizer([optimizeConstraints; NBIConstraints], -l + addedObj, ...
-        yalmipOptions, NBISymbols, output);
+        agent.controller.yalmipOptions, NBISymbols, output);
 end
 
 end
