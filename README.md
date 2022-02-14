@@ -36,6 +36,25 @@ If you want to find out how to use PARODIS and implement your own models and pro
 ## Documentation
 For a detailed description and documentation of how to use PARODIS and its components, check out our [Wiki](https://github.com/teamparodis/parodis/wiki/).
 
+## Citation
+If you use PARODIS in your research, please consider citing it.
+
+T. Schmitt, J. Engel, M. Hoffmann and T. Rodemann, "PARODIS: One MPC framework to control them all. Almost."\
+2021 IEEE Conference on Control Technology and Applications (CCTA), 2021, pp. 466-471, doi: [10.1109/CCTA48906.2021.9658821](https://doi.org/10.1109/CCTA48906.2021.9658821).
+
+```
+@INPROCEEDINGS{9658821,
+  author={Schmitt, Thomas and Engel, Jens and Hoffmann, Matthias and Rodemann, Tobias},
+  booktitle={2021 IEEE Conference on Control Technology and Applications (CCTA)}, 
+  title={PARODIS: One MPC framework to control them all. Almost.}, 
+  year={2021},
+  volume={},
+  number={},
+  pages={466-471},
+  doi={10.1109/CCTA48906.2021.9658821}
+}
+```
+
 ## Attribution & Contribution
 PARODIS is released under the BSD-2 license, so feel free to modify and use PARODIS as you wish. We'd really appreciate it though, if you would maybe put some kind of attribution in your project :)
 
