@@ -340,6 +340,16 @@ classdef Simulation < handle
                 end
                 
                 k_local = (this.T_s_max / agent.config.T_s(1) * k_start);
+                
+                % if simulation doesn't start at 0, then
+                % prefill simulation time in agent's history correctly
+                if k_start > 0
+                    %agent.history.simulationTime = (0:k_local)*agent.config.T_s(1);
+                    %agent.virtualHistory.simulationTime = (0:k_local)*agent.config.T_s(1);
+                    agent.history.simulationTime = [k_local*agent.config.T_s(1)];
+                    agent.virtualHistory.simulationTime = [k_local*agent.config.T_s(1)];
+                end
+                
                 agent.clearHistory(k_local);
                 agent.clearStatus(true);
                 agent.status.k = k_local;
@@ -632,6 +642,7 @@ classdef Simulation < handle
                     % restore cost function values
                     costNames = fieldnames(agent.controller.costFunctionIndexes);
                     costs_history = struct;
+                    costs_history_virtual = struct;
                     for i = 1:length(costNames)
                         costName = costNames{i};
                         
@@ -649,6 +660,7 @@ classdef Simulation < handle
                     % store each eval fun seperately
                     evalNames = fieldnames(agent.config.evalFuns);
                     eval_history = struct;
+                    eval_history_virtual = struct;
                     for i = 1:length(evalNames)
                         evalName = evalNames{i};
                         evalHistoryFile = agentDir + "eval_" + evalName + ".csv";
@@ -665,6 +677,7 @@ classdef Simulation < handle
                             
                         else
                             eval_history.(evalName) = NaN(1, k);
+                            eval_history_virtual.(evalName) = NaN(1, k);
                         end
                     end
                 end
