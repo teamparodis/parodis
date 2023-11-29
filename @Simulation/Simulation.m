@@ -874,7 +874,7 @@ classdef Simulation < handle
     
     methods (Static)
         function printHeader()
-            version = '1.1.1';
+            version = '1.1.2';
             releaseDate = '2023-11-29';
             message = [
                 "-------------------------------------------------------------";
