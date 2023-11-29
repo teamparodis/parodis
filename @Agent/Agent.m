@@ -177,6 +177,8 @@ classdef Agent < handle
                 this.callbackPostOptimization(this, this.simulation)
             end
             
+            this.updatePredictions(true);
+            
             if isfield(this.status, 'solverCode') && this.status.solverCode ~= 0
                 if strcmpi( this.config.pauseOnError, 'on') || (this.config.pauseOnError == this.status.solverCode)
                     message = sprintf("Paused execution, solver returned code %i: %s", this.status.solverCode, yalmiperror(this.status.solverCode));
@@ -262,18 +264,24 @@ classdef Agent < handle
             this.status.slackVariables = slacks;
         end
         
-        function updatePredictions(this)
+        function updatePredictions(this, fromNegotiation)
             % updatePredictions  Sets state and eval predictions according
             %                    to currently available input and state predictions from
             %                    current agent state
             
+            if nargin < 2
+                fromNegotiation = false;
+            end
+            
             this.status.xPred = this.predictTrajectory(this.status.uPred, this.status.dPred, this.history.x(:, end));
             
-            % call each eval function with pred = true and store result
-            this.status.evalPred = this.evaluateEvalFunctions(true);
-            
-            % call each cost function and retrieve horizon
-            this.status.costsPred = this.evaluateCostFunctions(this.status.xPred, this.status.uPred, this.status.dPred);
+            if ~fromNegotiation
+                % call each eval function with pred = true and store result
+                this.status.evalPred = this.evaluateEvalFunctions(true);
+
+                % call each cost function and retrieve horizon
+                this.status.costsPred = this.evaluateCostFunctions(this.status.xPred, this.status.uPred, this.status.dPred);
+            end
         end
         
         function updateHistory(this, externalData)
@@ -657,6 +665,7 @@ classdef Agent < handle
             evalNames = fieldnames(this.history.evalValues);
             for idx = 1:length(evalNames)
                 this.history.evalValues.(evalNames{idx})(:, after_k+1:end) = [];
+                
                 this.virtualHistory.evalValues.(evalNames{idx})(:, after_k+1:end) = [];
             end
             
@@ -726,6 +735,8 @@ classdef Agent < handle
             this.status.evalPred = struct;
             this.status.paramValues = struct;
             this.status.pareto = struct;
+            this.status.costsPred = struct;
+            this.status.slackVariables = struct;
             
             if clearPreviousStatus
                 this.previousStatus = [];
