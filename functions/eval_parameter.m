@@ -12,13 +12,17 @@ end
 function [value] = eval_parameter_evaluation(param, index, agent, predict, scenario)
 
 N_pred = length(agent.config.T_s);
+if isempty(scenario)
+    scenario = 1; 
+end
+
+value = agent.status.paramValues.(param){scenario}(index, :);
 if predict
-    value = agent.status.paramValues.(param){scenario}(index, :);
     if length(value) > N_pred
         value = value(1:N_pred);
     end
 else
-    value = NaN;
+    value = value(1);
 end
 
 end

@@ -26,7 +26,7 @@ for iParetoStep = 2:size(planePoints,1)
     [optOut, feasibilityCode] = optimizer(planePoints(iParetoStep,:));
     
     if feasibilityCode ~= 0
-        msg = "Yalmip error in Simulation step " + agent.sim.status.k + " in Pareto step " + paretoObj.paretoCurrentStep + ": " + (feasibilityCode);
+        msg = "Yalmip error in Simulation step " + agent.simulation.k_sim + " in Pareto step " + paretoObj.paretoCurrentStep + ": " + (feasibilityCode);
         if paretoObj.config.printSolverStatus
             agent.log(msg); %possible: yalmiperror
         else
